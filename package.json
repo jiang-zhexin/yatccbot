@@ -1,0 +1,21 @@
+{
+	"name": "yatccbot",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"cf-typegen": "wrangler types"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20250214.0",
+		"typescript": "^5.7.3",
+		"wrangler": "^3.109.1"
+	},
+	"dependencies": {
+		"fetch-event-stream": "^0.1.5",
+		"grammy": "^1.35.0",
+		"telegramify-markdown": "^1.2.2"
+	}
+}

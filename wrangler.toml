@@ -1,0 +1,28 @@
+name = "yatccbot"
+main = "src/index.ts"
+compatibility_date = "2025-02-04"
+compatibility_flags = ["nodejs_compat"]
+minify = true
+upload_source_maps = true
+preview_urls = false
+
+[observability]
+enabled = true
+
+[ai]
+binding = "AI"
+
+[vars.BOT_INFO]
+id = 7618804505
+is_bot = true
+first_name = "YA Privacy Chat Bot"
+username = "yatccbot"
+can_join_groups = true
+can_read_all_group_messages = false
+supports_inline_queries = false
+can_connect_to_business = false
+has_main_web_app = false
+
+[[kv_namespaces]]
+id = "2fb5e5f932fe4614b512defd2638fae1"
+binding = "YATCC"
