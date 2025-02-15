@@ -37,8 +37,7 @@
 		"skipLibCheck": true
 	},
 	"exclude": [
-		"test",
-		"init"
+		"test"
 	],
 	"include": [
 		"worker-configuration.d.ts",

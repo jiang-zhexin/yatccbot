@@ -39,8 +39,9 @@ chat.command("chat", async (c, next) => {
 chat.on("message:text").filter(
     (c) => c.session.messages !== undefined,
     async (c) => {
+        const model = (await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
         const result = await c.session.env.AI.run(
-            (await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq",
+            model,
             {
                 messages: c.session.messages,
                 stream: true,
@@ -49,27 +50,28 @@ chat.on("message:text").filter(
             },
             { gateway: { id: "yatccbot", collectLog: true } }
         )
-        const textStream = await ToTextStream(result)
         c.session.ctx.waitUntil(
             (async () => {
+                const textStream = await ToTextStream(result)
                 const reader = textStream.getReader()
                 let chunk = await reader.read()
                 let textBuffer = chunk.value ?? ""
                 let sendedLength = textBuffer.length
                 const message = await c.reply(textBuffer, { reply_parameters: { message_id: c.msg.message_id } })
+                const edit = async (textBuffer: string) => {
+                    await c.api.editMessageText(message.chat.id, message.message_id, telegramifyMarkdown(textBuffer, "escape"), {
+                        parse_mode: "MarkdownV2",
+                    })
+                }
                 while ((chunk = await reader.read()).value) {
                     textBuffer += chunk.value
                     if (textBuffer.length - sendedLength > Math.min(sendedLength, 16)) {
-                        await c.api.editMessageText(message.chat.id, message.message_id, telegramifyMarkdown(textBuffer, "escape"), {
-                            parse_mode: "MarkdownV2",
-                        })
+                        await edit(textBuffer)
                         sendedLength = textBuffer.length
                     }
                 }
                 if (textBuffer.length - sendedLength > 0) {
-                    await c.api.editMessageText(message.chat.id, message.message_id, telegramifyMarkdown(textBuffer, "escape"), {
-                        parse_mode: "MarkdownV2",
-                    })
+                    await edit(textBuffer)
                 }
                 c.session.messages?.push({ role: "assistant", content: textBuffer })
                 await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
