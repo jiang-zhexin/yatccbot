@@ -19,6 +19,10 @@ setting.command("models", async (c) => {
                     makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq"),
                     makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
                 ],
+                [
+                    makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/mistral/mistral-7b-instruct-v0.2-lora"),
+                    makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora"),
+                ],
             ],
         },
         entities: [{ type: "bold", offset: 0, length: 5 }],
@@ -40,6 +44,8 @@ const modelMap = {
     "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": "deepseek r1 distill qwen 32b",
     "@cf/qwen/qwen1.5-14b-chat-awq": "qwen 1.5 14b",
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast": "llama 3.3 70b",
+    "@cf/mistral/mistral-7b-instruct-v0.2-lora": "mistral 7b",
+    "@cf/google/gemma-7b-it-lora": "gemma 7b",
 }
 
 function makeInlineKeyboard(chat_id: number, message_id: number, model: models): InlineKeyboardButton {
