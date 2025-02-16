@@ -67,7 +67,7 @@ chat.on("message:text").filter(
                 }
                 while ((chunk = await reader.read()).value) {
                     textBuffer += chunk.value
-                    if (textBuffer.length - sendedLength > Math.min(sendedLength, 16)) {
+                    if (textBuffer.length - sendedLength > Math.min(sendedLength, 24)) {
                         await edit(textBuffer)
                         sendedLength = textBuffer.length
                     }
