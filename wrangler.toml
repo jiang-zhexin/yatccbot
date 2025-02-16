@@ -1,7 +1,6 @@
 name = "yatccbot"
 main = "src/index.ts"
 compatibility_date = "2025-02-04"
-compatibility_flags = ["nodejs_compat"]
 minify = true
 upload_source_maps = true
 preview_urls = false

@@ -1,6 +1,6 @@
 import { Composer } from "grammy"
-import telegramifyMarkdown from "telegramify-markdown"
 import { ToTextStream } from "./utils/textstream"
+import { Markdown } from "./utils/transform"
 
 export const chat = new Composer<MyContext>()
 const system: message = { role: "system", content: "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论" }
@@ -62,9 +62,8 @@ chat.on("message:text").filter(
                 let sendedLength = textBuffer.length
                 const message = await c.reply(textBuffer, { reply_parameters: { message_id: c.msg.message_id } })
                 const edit = (textBuffer: string) => {
-                    return c.api.editMessageText(message.chat.id, message.message_id, telegramifyMarkdown(textBuffer, "escape"), {
-                        parse_mode: "MarkdownV2",
-                    })
+                    const result = Markdown(textBuffer)
+                    return c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
                 }
                 while ((chunk = await reader.read()).value) {
                     textBuffer += chunk.value
