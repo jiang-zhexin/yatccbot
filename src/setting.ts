@@ -1,4 +1,5 @@
 import { Composer } from "grammy"
+import type { InlineKeyboardButton } from "grammy/types"
 
 export const setting = new Composer<MyContext>()
 
@@ -29,11 +30,11 @@ setting.on("callback_query:data", async (c) => {
 
 const modelMap = {
     "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": "deepseek r1 distill qwen 32b",
-    "@cf/qwen/qwen1.5-14b-chat-awq": "qwen1.5 14b",
+    "@cf/qwen/qwen1.5-14b-chat-awq": "qwen 1.5 14b",
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast": "llama 3.3 70b",
 }
 
-function makeInlineKeyboard(chat_id: number, model: models) {
+function makeInlineKeyboard(chat_id: number, model: models): InlineKeyboardButton {
     return {
         text: modelMap[model],
         callback_data: `${chat_id}|${model}`,
