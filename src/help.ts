@@ -16,6 +16,9 @@ help.command(["start", "help"], async (c) => {
 [deepseek r1 distill qwen 32b](https://github.com/deepseek-ai/DeepSeek-R1/blob/main/LICENSE)
 [qwen 1\\.5 14b](https://github.com/QwenLM/Qwen/blob/main/LICENSE)
 [llama 3\\.3 70b](https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/LICENSE)
+
+[*项目地址*](https://github.com/jiang-zhexin/yatccbot)
+本项目使用 AGPL\\-3\\.0 license
 `,
         {
             parse_mode: "MarkdownV2",
