@@ -3,18 +3,20 @@ import telegramifyMarkdown from "telegramify-markdown"
 import { ToTextStream } from "./utils/textstream"
 
 export const chat = new Composer<MyContext>()
+const system: message = { role: "system", content: "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论" }
 
 chat.on("message:text")
     .filter((c) => c.msg.reply_to_message?.from?.id === c.me.id)
     .filter(
         (c) => c.msg.text.startsWith("/chat") || !c.msg.text.startsWith("/"),
         async (c, next) => {
-            const messages = await c.session.env.YATCC.get<messages>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
+            const messages = await c.session.env.YATCC.get<message[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
                 type: "json",
             })
             if (!messages) {
                 return await c.reply("上下文过期，请重新开始对话", { reply_parameters: { message_id: c.msg.message_id } })
             }
+            messages.unshift(system)
             messages.push({ role: "user", content: c.msg.text })
             c.session.messages = messages
             await next()
@@ -22,9 +24,8 @@ chat.on("message:text")
     )
 
 chat.command("chat", async (c, next) => {
-    const system: messages = [{ role: "system", content: "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论" }]
-    const messages = c.session.messages ?? system
-    if (messages.length <= system.length) {
+    const messages = c.session.messages ?? [system]
+    if (messages.length <= 1) {
         c.msg.reply_to_message?.text && messages.push({ role: "user", content: c.msg.reply_to_message.text })
         c.match.length > 0 && messages.push({ role: "user", content: c.match })
     } else {
@@ -60,8 +61,8 @@ chat.on("message:text").filter(
                 let textBuffer = chunk.value ?? ""
                 let sendedLength = textBuffer.length
                 const message = await c.reply(textBuffer, { reply_parameters: { message_id: c.msg.message_id } })
-                const edit = async (textBuffer: string) => {
-                    await c.api.editMessageText(message.chat.id, message.message_id, telegramifyMarkdown(textBuffer, "escape"), {
+                const edit = (textBuffer: string) => {
+                    return c.api.editMessageText(message.chat.id, message.message_id, telegramifyMarkdown(textBuffer, "escape"), {
                         parse_mode: "MarkdownV2",
                     })
                 }
@@ -72,10 +73,9 @@ chat.on("message:text").filter(
                         sendedLength = textBuffer.length
                     }
                 }
-                if (textBuffer.length - sendedLength > 0) {
-                    await edit(textBuffer)
-                }
-                c.session.messages?.push({ role: "assistant", content: textBuffer })
+                const assistant = await edit(textBuffer)
+                c.session.messages?.push({ role: "assistant", content: assistant === true ? textBuffer : assistant.text })
+                c.session.messages?.shift()
                 await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
                     expirationTtl: 60 * 60 * 24 * 7,
                 })

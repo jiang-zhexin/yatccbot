@@ -4,10 +4,10 @@ import type { Message } from "ai"
 interface SessionData {
     ctx: ExecutionContext
     env: Env
-    messages?: messages
+    messages?: message[]
 }
 
 declare global {
-    type messages = Omit<Message, "id">[]
+    type message = Omit<Message, "id">
     type MyContext = Context & SessionFlavor<SessionData>
 }
