@@ -1,6 +1,7 @@
 import { Composer } from "grammy"
-import { ToTextStream } from "./utils/textstream"
+import { streamText } from "ai"
 import { Markdown } from "./utils/transform"
+import { createWorkersAI } from "./ai-provider"
 
 export const chat = new Composer<MyContext>()
 const system: message = { role: "system", content: "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论" }
@@ -43,19 +44,16 @@ chat.on("message:text").filter(
     (c) => c.session.messages !== undefined,
     async (c) => {
         const model = (await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
-        const result = await c.session.env.AI.run(
-            model,
-            {
-                messages: c.session.messages,
-                stream: true,
-                max_tokens: 2048,
-                temperature: 0.6,
-            },
-            { gateway: { id: "yatccbot", collectLog: true } }
-        )
+        const workersAI = createWorkersAI({ binding: c.session.env.AI, gateway: { id: "yatccbot", collectLog: true } })
+        const result = streamText({
+            model: workersAI(model),
+            messages: c.session.messages,
+            maxTokens: 2048,
+            temperature: 0.6,
+        })
         c.session.ctx.waitUntil(
             (async () => {
-                const textStream = await ToTextStream(result)
+                const textStream = result.textStream
                 const reader = textStream.getReader()
                 let chunk = await reader.read()
                 let textBuffer = chunk.value ?? ""

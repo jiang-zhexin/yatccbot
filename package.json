@@ -14,6 +14,8 @@
 		"wrangler": "^3.109.1"
 	},
 	"dependencies": {
+		"@ai-sdk/provider": "^1.0.7",
+		"ai": "^4.1.41",
 		"fetch-event-stream": "^0.1.5",
 		"grammy": "^1.35.0",
 		"marked": "^15.0.7"
