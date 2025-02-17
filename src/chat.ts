@@ -59,6 +59,7 @@ chat.on("message:text").filter(
                 let textBuffer = chunk.value ?? ""
                 let sendedLength = textBuffer.length
                 const message = await c.reply(textBuffer, { reply_parameters: { message_id: c.msg.message_id } })
+                let assistant
                 const edit = (textBuffer: string) => {
                     const result = Markdown(textBuffer)
                     return c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
@@ -66,12 +67,17 @@ chat.on("message:text").filter(
                 while ((chunk = await reader.read()).value) {
                     textBuffer += chunk.value
                     if (textBuffer.length - sendedLength > Math.min(sendedLength, 24)) {
-                        await edit(textBuffer)
+                        assistant = await edit(textBuffer)
                         sendedLength = textBuffer.length
                     }
                 }
-                const assistant = await edit(textBuffer)
-                c.session.messages?.push({ role: "assistant", content: assistant === true ? textBuffer : assistant.text })
+                if (textBuffer.length > sendedLength) {
+                    assistant = await edit(textBuffer)
+                }
+                c.session.messages?.push({
+                    role: "assistant",
+                    content: assistant === true || assistant === undefined ? textBuffer : assistant.text,
+                })
                 c.session.messages?.shift()
                 await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
                     expirationTtl: 60 * 60 * 24 * 7,
