@@ -18,6 +18,7 @@ export function createWorkersAI(options: WorkersAISettings): WorkersAI {
         new WorkersAIChatLanguageModel(modelId, settings, {
             provider: "workersai.chat",
             binding: options.binding,
+            gateway: options.gateway,
         })
 
     const provider = function (modelId: BaseAiTextGenerationModels, settings?: WorkersAIChatSettings): WorkersAIChatLanguageModel {
