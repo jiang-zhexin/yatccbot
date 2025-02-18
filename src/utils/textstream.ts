@@ -40,7 +40,7 @@ export class TextBufferTransformStream extends TransformStream<string, string> {
     private transform(chunk: string, controller: TransformStreamDefaultController<string>) {
         this.buffer += chunk
         if (this.buffer.length - this.sendedSize >= Math.min(this.sendedSize, this.maxBufferSize)) {
-            this.sendedSize += this.buffer.length
+            this.sendedSize = this.buffer.length
             controller.enqueue(this.buffer)
         }
     }

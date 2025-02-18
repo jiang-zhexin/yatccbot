@@ -10,6 +10,19 @@ type WorkersAIChatConfig = {
     gateway?: GatewayOptions
 }
 
+interface result {
+    response: null | string
+    tool_calls?: {
+        name: string
+        arguments: Record<string, unknown>
+    }[]
+    usage: {
+        prompt_tokens: number
+        completion_tokens: number
+        total_tokens: number
+    }
+}
+
 export class WorkersAIChatLanguageModel implements LanguageModelV1 {
     readonly specificationVersion = "v1"
     readonly defaultObjectGenerationMode = "json"
@@ -102,26 +115,25 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
 
     async doGenerate(options: Parameters<LanguageModelV1["doGenerate"]>[0]): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
         const { args, warnings } = this.getArgs(options)
-        const response = await this.config.binding.run(args.model, { ...args }, { gateway: this.config.gateway })
+        const response = (await this.config.binding.run(args.model, { ...args }, { gateway: this.config.gateway })) as result
         if (response instanceof ReadableStream) {
             throw new Error("This shouldn't happen")
         }
 
         return {
-            text: response.response,
-            // TODO: tool calls
-            // toolCalls: response.tool_calls?.map((toolCall) => ({
-            //   toolCallType: "function",
-            //   toolCallId: toolCall.name, // TODO: what can the id be?
-            //   toolName: toolCall.name,
-            //   args: JSON.stringify(toolCall.arguments || {}),
-            // })),
-            finishReason: "stop", // TODO: mapWorkersAIFinishReason(response.finish_reason),
+            text: response.response ?? "",
+            toolCalls: response.tool_calls?.map((toolCall) => ({
+                toolCallType: "function",
+                toolCallId: toolCall.name, // TODO: what can the id be?
+                toolName: toolCall.name,
+                args: JSON.stringify(toolCall.arguments || {}),
+            })),
+            finishReason: response.tool_calls ? "tool-calls" : "stop", // TODO: mapWorkersAIFinishReason(response.finish_reason),
             rawCall: { rawPrompt: args.messages, rawSettings: args },
             usage: {
                 // TODO: mapWorkersAIUsage(response.usage),
-                promptTokens: 0,
-                completionTokens: 0,
+                promptTokens: response.usage.prompt_tokens,
+                completionTokens: response.usage.completion_tokens,
             },
             warnings,
         }
