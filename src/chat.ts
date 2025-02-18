@@ -26,8 +26,12 @@ chat.on("message:text")
 
 chat.command("chat", async (c, next) => {
     const messages = [system]
-    c.msg.reply_to_message?.text && messages.push({ role: "user", content: c.msg.reply_to_message.text })
-    c.match.length > 0 && messages.push({ role: "user", content: c.match })
+    if (c.msg.reply_to_message?.quote?.text) {
+        messages.push({ role: "user", content: c.msg.reply_to_message.quote.text })
+    } else {
+        if (c.msg.reply_to_message?.text) messages.push({ role: "user", content: c.msg.reply_to_message.text })
+    }
+    if (c.match.length > 0) messages.push({ role: "user", content: c.match })
     if (messages.length === 1) {
         return await c.reply("请输入文字", { reply_parameters: { message_id: c.msg.message_id } })
     }
