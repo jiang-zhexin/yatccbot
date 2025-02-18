@@ -4,6 +4,7 @@ import { Markdown } from "./utils/transform"
 import { createWorkersAI } from "./ai-provider"
 import { TextBufferTransformStream } from "./utils/textstream"
 import { getWebsiteContent } from "./tool/getWebsiteContent"
+import { modelMap } from "./constant"
 
 export const chat = new Composer<MyContext>()
 const system: CoreMessage = { role: "system", content: "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论" }
@@ -43,55 +44,80 @@ chat.command("chat", async (c, next) => {
 chat.on("message:text").filter(
     (c) => c.session.messages !== undefined,
     async (c) => {
-        const hasUrl = c.msg.entities?.findIndex((e) => e.type === "url" || e.type === "text_link")
-        // const model = (await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
-        const model = "@cf/meta/llama-3.3-70b-instruct-fp8-fast" // 这是暂时的限制
+        const useTool = (() => {
+            const hasUrl = c.msg.entities?.findIndex((e) => e.type === "url" || e.type === "text_link")
+            if (hasUrl !== undefined && hasUrl >= 0) {
+                return getWebsiteContent
+            }
+            return undefined
+        })()
+        const model = (await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
         const workersAI = createWorkersAI({ binding: c.session.env.AI, gateway: { id: "yatccbot", collectLog: true } })
         const message = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
-        const edit = (textBuffer: string) => {
+        const edit = async (textBuffer: string) => {
             const result = Markdown(textBuffer)
-            return c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
+            await c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
+            return result
         }
-        if (hasUrl !== undefined && hasUrl >= 0) {
+        if (modelMap[model].useTool && useTool) {
             edit("调用函数中...")
-            const result = await generateText({
+            await generateText({
                 model: workersAI(model),
                 messages: c.session.messages,
                 maxTokens: 2048,
                 temperature: 0.6,
-                tools: {
-                    getWebsiteContent,
+                tools: { useTool },
+                onStepFinish: (result) => {
+                    if (result.finishReason === "tool-calls") {
+                        edit("调用函数成功，等待生成...")
+                        c.session.messages?.push(...result.response.messages)
+                    }
                 },
             }).catch((err) => {
                 console.log(err)
                 c.session.ctx.waitUntil(edit("函数调用发生错误! "))
                 throw err
             })
-            if (result.finishReason === "tool-calls") {
-                edit("调用函数成功，等待生成...")
-                c.session.messages?.push(...result.response.messages)
-            }
         }
-        const result = streamText({
-            model: workersAI(model),
-            messages: c.session.messages,
-            maxTokens: 2048,
-            temperature: 0.6,
-            onFinish: async (result) => {
-                const assistant = Markdown(result.text).text
-                c.session.messages?.push({ role: "assistant", content: assistant })
-                c.session.messages?.shift()
-                console.log(c.session.messages)
-                await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
-                    expirationTtl: 60 * 60 * 24 * 7,
+        const saveContext = (assistant: string) => {
+            c.session.messages?.push({ role: "assistant", content: assistant })
+            c.session.messages?.shift()
+            console.log(c.session.messages)
+            return c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
+                expirationTtl: 60 * 60 * 24 * 7,
+            })
+        }
+        if (!modelMap[model].stream) {
+            edit("该模型不支持流式，等待时间较长...")
+            c.session.ctx.waitUntil(
+                generateText({
+                    model: workersAI(model),
+                    messages: c.session.messages,
+                    maxTokens: 2048,
+                    temperature: 0.6,
+                    onStepFinish: async (result) => {
+                        const rawText = await edit(result.text)
+                        await saveContext(rawText.text)
+                    },
                 })
-            },
-        })
-        const streamEdit = new WritableStream({
-            async write(chunk: string, controller) {
-                await edit(chunk)
-            },
-        })
-        c.session.ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(32)).pipeTo(streamEdit))
+            )
+        } else {
+            const result = streamText({
+                model: workersAI(model),
+                messages: c.session.messages,
+                maxTokens: 2048,
+                temperature: 0.6,
+                onFinish: async (result) => {
+                    const rawText = Markdown(result.text).text
+                    await saveContext(rawText)
+                },
+            })
+            const streamEdit = new WritableStream({
+                async write(chunk: string, controller) {
+                    await edit(chunk)
+                },
+            })
+            c.session.ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(32)).pipeTo(streamEdit))
+        }
     }
 )

@@ -1,5 +1,6 @@
 import { Composer } from "grammy"
 import type { InlineKeyboardButton } from "grammy/types"
+import { modelMap } from "./constant"
 
 export const setting = new Composer<MyContext>()
 
@@ -33,26 +34,15 @@ setting.on("callback_query:data", async (c) => {
     await Promise.all([
         c.session.env.YATCC.put(`${chat_id}-model`, model),
         c.answerCallbackQuery(),
-        c.api.editMessageText(chat_id, parseInt(message_id), `当前模型: \n${modelMap[model as models]}`, {
+        c.api.editMessageText(chat_id, parseInt(message_id), `当前模型: \n${modelMap[model as models].name}`, {
             entities: [{ type: "bold", offset: 0, length: 5 }],
         }),
     ])
 })
 
-const modelMap = {
-    "@cf/qwen/qwen1.5-14b-chat-awq": "qwen 1.5 14b",
-    "@cf/meta/llama-3.3-70b-instruct-fp8-fast": "llama 3.3 70b",
-    "@hf/nousresearch/hermes-2-pro-mistral-7b": "hermes 2 pro 7b",
-    "@cf/google/gemma-7b-it-lora": "gemma 7b",
-}
-
 function makeInlineKeyboard(chat_id: number, message_id: number, model: models): InlineKeyboardButton {
     return {
-        text: modelMap[model],
+        text: modelMap[model].name,
         callback_data: `${chat_id}|${message_id}|${model}`,
     }
-}
-
-declare global {
-    type models = keyof typeof modelMap
 }
