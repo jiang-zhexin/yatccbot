@@ -2,6 +2,7 @@ import { Composer } from "grammy"
 import { streamText } from "ai"
 import { Markdown } from "./utils/transform"
 import { createWorkersAI } from "./ai-provider"
+import { TextBufferTransformStream } from "./utils/textstream"
 
 export const chat = new Composer<MyContext>()
 const system: message = { role: "system", content: "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论" }
@@ -51,38 +52,29 @@ chat.on("message:text").filter(
             maxTokens: 2048,
             temperature: 0.6,
         })
+        const message = await c.reply("...", { reply_parameters: { message_id: c.msg.message_id } })
+        const edit = (textBuffer: string) => {
+            const result = Markdown(textBuffer)
+            return c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
+        }
         c.session.ctx.waitUntil(
-            (async () => {
-                const textStream = result.textStream
-                const reader = textStream.getReader()
-                let chunk = await reader.read()
-                let textBuffer = chunk.value ?? ""
-                let sendedLength = textBuffer.length
-                const message = await c.reply(textBuffer, { reply_parameters: { message_id: c.msg.message_id } })
-                let assistant
-                const edit = (textBuffer: string) => {
-                    const result = Markdown(textBuffer)
-                    return c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
-                }
-                while ((chunk = await reader.read()).value) {
-                    textBuffer += chunk.value
-                    if (textBuffer.length - sendedLength > Math.min(sendedLength, 24)) {
-                        assistant = await edit(textBuffer)
-                        sendedLength = textBuffer.length
-                    }
-                }
-                if (textBuffer.length > sendedLength) {
-                    assistant = await edit(textBuffer)
-                }
-                c.session.messages?.push({
-                    role: "assistant",
-                    content: assistant === true || assistant === undefined ? textBuffer : assistant.text,
+            result.textStream.pipeThrough(new TextBufferTransformStream(32)).pipeTo(
+                new WritableStream({
+                    async write(chunk: string, controller) {
+                        await edit(chunk)
+                    },
+                    async close() {
+                        c.session.messages?.push({
+                            role: "assistant",
+                            content: Markdown(await result.text).text,
+                        })
+                        c.session.messages?.shift()
+                        await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
+                            expirationTtl: 60 * 60 * 24 * 7,
+                        })
+                    },
                 })
-                c.session.messages?.shift()
-                await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
-                    expirationTtl: 60 * 60 * 24 * 7,
-                })
-            })()
+            )
         )
     }
 )
