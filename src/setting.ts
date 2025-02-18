@@ -14,7 +14,6 @@ setting.command("models", async (c) => {
     await c.api.editMessageText(message.chat.id, message.message_id, `当前模型: \n${modelMap[model ?? "@cf/qwen/qwen1.5-14b-chat-awq"]}`, {
         reply_markup: {
             inline_keyboard: [
-                [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b")],
                 [
                     makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq"),
                     makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
@@ -41,7 +40,6 @@ setting.on("callback_query:data", async (c) => {
 })
 
 const modelMap = {
-    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": "deepseek r1 distill qwen 32b",
     "@cf/qwen/qwen1.5-14b-chat-awq": "qwen 1.5 14b",
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast": "llama 3.3 70b",
     "@hf/nousresearch/hermes-2-pro-mistral-7b": "hermes 2 pro 7b",
