@@ -9,11 +9,6 @@ export const modelMap = {
         stream: true,
         useTool: true,
     },
-    "@hf/nousresearch/hermes-2-pro-mistral-7b": {
-        name: "hermes 2 pro 7b",
-        stream: false,
-        useTool: true,
-    },
     "@cf/google/gemma-7b-it-lora": {
         name: "gemma 7b",
         stream: true,

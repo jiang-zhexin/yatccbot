@@ -12,21 +12,21 @@ setting.command("models", async (c) => {
             entities: [{ type: "bold", offset: 0, length: 5 }],
         }),
     ])
-    await c.api.editMessageText(message.chat.id, message.message_id, `当前模型: \n${modelMap[model ?? "@cf/qwen/qwen1.5-14b-chat-awq"]}`, {
-        reply_markup: {
-            inline_keyboard: [
-                [
-                    makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq"),
-                    makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
+    await c.api.editMessageText(
+        message.chat.id,
+        message.message_id,
+        `当前模型: \n${modelMap[model ?? "@cf/qwen/qwen1.5-14b-chat-awq"]?.name}`,
+        {
+            reply_markup: {
+                inline_keyboard: [
+                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq")],
+                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast")],
+                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora")],
                 ],
-                [
-                    makeInlineKeyboard(c.msg.chat.id, message.message_id, "@hf/nousresearch/hermes-2-pro-mistral-7b"),
-                    makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora"),
-                ],
-            ],
-        },
-        entities: [{ type: "bold", offset: 0, length: 5 }],
-    })
+            },
+            entities: [{ type: "bold", offset: 0, length: 5 }],
+        }
+    )
 })
 
 setting.on("callback_query:data", async (c) => {
@@ -34,7 +34,7 @@ setting.on("callback_query:data", async (c) => {
     await Promise.all([
         c.session.env.YATCC.put(`${chat_id}-model`, model),
         c.answerCallbackQuery(),
-        c.api.editMessageText(chat_id, parseInt(message_id), `当前模型: \n${modelMap[model as models].name}`, {
+        c.api.editMessageText(chat_id, parseInt(message_id), `当前模型: \n${modelMap[model as models]?.name}`, {
             entities: [{ type: "bold", offset: 0, length: 5 }],
         }),
     ])
@@ -42,7 +42,7 @@ setting.on("callback_query:data", async (c) => {
 
 function makeInlineKeyboard(chat_id: number, message_id: number, model: models): InlineKeyboardButton {
     return {
-        text: modelMap[model].name,
+        text: modelMap[model]?.name,
         callback_data: `${chat_id}|${message_id}|${model}`,
     }
 }
