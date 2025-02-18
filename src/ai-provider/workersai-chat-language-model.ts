@@ -3,24 +3,12 @@ import { convertToWorkersAIChatMessages } from "./convert-to-workersai-chat-mess
 import type { WorkersAIChatSettings } from "./workersai-chat-settings"
 
 import { events } from "fetch-event-stream"
+import type { GenerateResult, StreamChunk } from "./workersai-chat-type"
 
 type WorkersAIChatConfig = {
     provider: string
     binding: Ai
     gateway?: GatewayOptions
-}
-
-interface result {
-    response: null | string
-    tool_calls?: {
-        name: string
-        arguments: Record<string, unknown>
-    }[]
-    usage: {
-        prompt_tokens: number
-        completion_tokens: number
-        total_tokens: number
-    }
 }
 
 export class WorkersAIChatLanguageModel implements LanguageModelV1 {
@@ -115,7 +103,7 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
 
     async doGenerate(options: Parameters<LanguageModelV1["doGenerate"]>[0]): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
         const { args, warnings } = this.getArgs(options)
-        const response = (await this.config.binding.run(args.model, { ...args }, { gateway: this.config.gateway })) as result
+        const response = (await this.config.binding.run(args.model, { ...args }, { gateway: this.config.gateway })) as GenerateResult
         if (response instanceof ReadableStream) {
             throw new Error("This shouldn't happen")
         }
@@ -124,14 +112,13 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
             text: response.response ?? "",
             toolCalls: response.tool_calls?.map((toolCall) => ({
                 toolCallType: "function",
-                toolCallId: toolCall.name, // TODO: what can the id be?
+                toolCallId: toolCall.name,
                 toolName: toolCall.name,
                 args: JSON.stringify(toolCall.arguments || {}),
             })),
-            finishReason: response.tool_calls ? "tool-calls" : "stop", // TODO: mapWorkersAIFinishReason(response.finish_reason),
+            finishReason: response.tool_calls ? "tool-calls" : "stop",
             rawCall: { rawPrompt: args.messages, rawSettings: args },
             usage: {
-                // TODO: mapWorkersAIUsage(response.usage),
                 promptTokens: response.usage.prompt_tokens,
                 completionTokens: response.usage.completion_tokens,
             },
@@ -158,7 +145,7 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
                             controller.close()
                             return
                         }
-                        const chunk = JSON.parse(event.data) as chunk
+                        const chunk = JSON.parse(event.data) as StreamChunk
                         if (chunk.usage) {
                             controller.enqueue({
                                 type: "finish",
@@ -182,16 +169,6 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
             rawCall: { rawPrompt: args.messages, rawSettings: args },
             warnings,
         }
-    }
-}
-
-interface chunk {
-    response: string
-    p?: string
-    usage?: {
-        prompt_tokens: number
-        completion_tokens: number
-        total_tokens: number
     }
 }
 
