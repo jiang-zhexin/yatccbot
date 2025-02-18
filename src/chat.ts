@@ -77,25 +77,21 @@ chat.on("message:text").filter(
             messages: c.session.messages,
             maxTokens: 2048,
             temperature: 0.6,
-        })
-        c.session.ctx.waitUntil(
-            result.textStream.pipeThrough(new TextBufferTransformStream(32)).pipeTo(
-                new WritableStream({
-                    async write(chunk: string, controller) {
-                        await edit(chunk)
-                    },
-                    async close() {
-                        c.session.messages?.push({
-                            role: "assistant",
-                            content: Markdown(await result.text).text,
-                        })
-                        c.session.messages?.shift()
-                        await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
-                            expirationTtl: 60 * 60 * 24 * 7,
-                        })
-                    },
+            onFinish: async (result) => {
+                const assistant = Markdown(result.text).text
+                c.session.messages?.push({ role: "assistant", content: assistant })
+                c.session.messages?.shift()
+                console.log(c.session.messages)
+                await c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
+                    expirationTtl: 60 * 60 * 24 * 7,
                 })
-            )
-        )
+            },
+        })
+        const streamEdit = new WritableStream({
+            async write(chunk: string, controller) {
+                await edit(chunk)
+            },
+        })
+        c.session.ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(32)).pipeTo(streamEdit))
     }
 )

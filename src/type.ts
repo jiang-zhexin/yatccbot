@@ -11,5 +11,5 @@ type filter<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T]
 
 declare global {
     type MyContext = Context & SessionFlavor<SessionData>
-    type BaseAiTextGenerationModels = filter<AiModels, BaseAiTextGeneration>
+    type BaseAiTextGenerationModels = Exclude<filter<AiModels, BaseAiTextGeneration>, filter<AiModels, BaseAiTextToImage>>
 }
