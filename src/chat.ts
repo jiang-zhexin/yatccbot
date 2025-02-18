@@ -9,32 +9,26 @@ const system: message = { role: "system", content: "你在 telegram 中扮演一
 
 chat.on("message:text")
     .filter((c) => c.msg.reply_to_message?.from?.id === c.me.id)
-    .filter(
-        (c) => c.msg.text.startsWith("/chat") || !c.msg.text.startsWith("/"),
-        async (c, next) => {
-            const messages = await c.session.env.YATCC.get<message[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
-                type: "json",
-            })
-            if (!messages) {
-                return await c.reply("上下文过期，请重新开始对话", { reply_parameters: { message_id: c.msg.message_id } })
-            }
-            messages.unshift(system)
-            messages.push({ role: "user", content: c.msg.text })
-            c.session.messages = messages
-            await next()
+    .filter((c) => c.msg.text.length > 2) // 短信息很可能不是询问 LLM
+    .filter((c) => !c.msg.text.startsWith("/"))
+    .use(async (c, next) => {
+        const messages = await c.session.env.YATCC.get<message[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
+            type: "json",
+        })
+        if (!messages) {
+            return await c.reply("上下文过期，请重新开始对话", { reply_parameters: { message_id: c.msg.message_id } })
         }
-    )
+        messages.unshift(system)
+        messages.push({ role: "user", content: c.msg.text })
+        c.session.messages = messages
+        await next()
+    })
 
 chat.command("chat", async (c, next) => {
-    const messages = c.session.messages ?? [system]
-    if (messages.length <= 1) {
-        c.msg.reply_to_message?.text && messages.push({ role: "user", content: c.msg.reply_to_message.text })
-        c.match.length > 0 && messages.push({ role: "user", content: c.match })
-    } else {
-        messages.pop()
-        c.match.length > 0 && messages.push({ role: "user", content: c.match })
-    }
-    if (messages.length === 0) {
+    const messages = [system]
+    c.msg.reply_to_message?.text && messages.push({ role: "user", content: c.msg.reply_to_message.text })
+    c.match.length > 0 && messages.push({ role: "user", content: c.match })
+    if (messages.length === 1) {
         return await c.reply("请输入文字", { reply_parameters: { message_id: c.msg.message_id } })
     }
     c.session.messages = messages
