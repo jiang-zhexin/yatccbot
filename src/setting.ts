@@ -22,6 +22,7 @@ setting.command("models", async (c) => {
                     [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq")],
                     [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast")],
                     [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora")],
+                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "gemini-2.0-flash-001")],
                 ],
             },
             entities: [{ type: "bold", offset: 0, length: 5 }],

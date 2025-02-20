@@ -1,5 +1,7 @@
 import { Composer } from "grammy"
 import { type CoreMessage, generateText, streamText } from "ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
+
 import { Markdown } from "./utils/transform"
 import { createWorkersAI } from "./ai-provider"
 import { TextBufferTransformStream } from "./utils/textstream"
@@ -55,18 +57,43 @@ chat.on("message:text").filter(
             }
             return undefined
         })()
-        const model = (await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
-        const workersAI = createWorkersAI({ binding: c.session.env.AI, gateway: { id: "yatccbot", collectLog: true } })
+        const modelMatedata = modelMap[(await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"]
+
+        const model = (() => {
+            switch (modelMatedata.provider) {
+                case "workers-ai":
+                    const workersAI = createWorkersAI({ binding: c.session.env.AI, gateway: { id: "yatccbot", collectLog: true } })
+                    return workersAI(modelMatedata.id)
+
+                case "google-ai-studio":
+                    const googleAI = createGoogleGenerativeAI({
+                        apiKey: c.session.env.GOOGLE_GENERATIVE_AI_API_KEY,
+                        fetch: async (input, init): Promise<Response> => {
+                            const req = new Request(input, init)
+                            const { pathname, searchParams } = new URL(req.url)
+
+                            return c.session.env.AI.gateway("yatccbot").run({
+                                provider: "google-ai-studio",
+                                endpoint: `${pathname}?${searchParams}`,
+                                headers: Object.fromEntries(req.headers.entries()),
+                                query: await req.json(),
+                            })
+                        },
+                    })
+                    return googleAI(modelMatedata.id)
+            }
+        })()
+
         const message = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
         const edit = async (textBuffer: string) => {
             const result = Markdown(textBuffer)
             await c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
             return result
         }
-        if (modelMap[model].useTool && useTool) {
+        if (modelMatedata.useTool && useTool) {
             edit("调用函数中...")
             await generateText({
-                model: workersAI(model),
+                model: model,
                 messages: c.session.messages,
                 maxTokens: 2048,
                 temperature: 0.6,
@@ -91,11 +118,11 @@ chat.on("message:text").filter(
                 expirationTtl: 60 * 60 * 24 * 7,
             })
         }
-        if (!modelMap[model].stream) {
+        if (!modelMatedata.stream) {
             edit("该模型不支持流式，等待时间较长...")
             c.session.ctx.waitUntil(
                 generateText({
-                    model: workersAI(model),
+                    model: model,
                     messages: c.session.messages,
                     maxTokens: 2048,
                     temperature: 0.6,
@@ -107,7 +134,7 @@ chat.on("message:text").filter(
             )
         } else {
             const result = streamText({
-                model: workersAI(model),
+                model: model,
                 messages: c.session.messages,
                 maxTokens: 2048,
                 temperature: 0.6,
