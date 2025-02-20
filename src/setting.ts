@@ -14,19 +14,21 @@ setting.command("models", async (c) => {
             entities: [{ type: "bold", offset: 0, length: 5 }],
         }),
     ])
+
+    const inline_keyboard: InlineKeyboardButton[][] = [
+        [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq")],
+        [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast")],
+        [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora")],
+    ]
+    if (env.GOOGLE_GENERATIVE_AI_API_KEY)
+        inline_keyboard.push([makeInlineKeyboard(c.msg.chat.id, message.message_id, "gemini-2.0-flash-001")])
+
     await c.api.editMessageText(
         message.chat.id,
         message.message_id,
         `当前模型: \n${modelMap[model ?? "@cf/qwen/qwen1.5-14b-chat-awq"]?.name}`,
         {
-            reply_markup: {
-                inline_keyboard: [
-                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq")],
-                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast")],
-                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora")],
-                    [makeInlineKeyboard(c.msg.chat.id, message.message_id, "gemini-2.0-flash-001")],
-                ],
-            },
+            reply_markup: { inline_keyboard: inline_keyboard },
             entities: [{ type: "bold", offset: 0, length: 5 }],
         }
     )
