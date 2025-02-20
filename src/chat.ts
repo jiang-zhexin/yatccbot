@@ -20,12 +20,10 @@ chat.on("message:text")
     .filter((c) => c.msg.text.length > 2) // 短信息很可能不是询问 LLM
     .filter((c) => !c.msg.text.startsWith("/"))
     .use(async (c, next) => {
-        const messages = await c.session.env.YATCC.get<CoreMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
-            type: "json",
-        })
-        if (!messages) {
-            return await c.reply("上下文过期，请重新开始对话", { reply_parameters: { message_id: c.msg.message_id } })
-        }
+        const messages =
+            (await c.session.env.YATCC.get<CoreMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
+                type: "json",
+            })) ?? []
         messages.unshift(system)
         messages.push({ role: "user", content: c.msg.text })
         c.session.messages = messages
