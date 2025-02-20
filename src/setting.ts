@@ -5,8 +5,10 @@ import { modelMap } from "./constant"
 export const setting = new Composer<MyContext>()
 
 setting.command("models", async (c) => {
+    const { env } = c.session
+
     const [model, message] = await Promise.all([
-        c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`),
+        env.YATCC.get<models>(`${c.msg.chat.id}-model`),
         c.reply("当前模型: ", {
             reply_parameters: { message_id: c.msg.message_id },
             entities: [{ type: "bold", offset: 0, length: 5 }],
@@ -31,9 +33,11 @@ setting.command("models", async (c) => {
 })
 
 setting.on("callback_query:data", async (c) => {
+    const { env } = c.session
+
     const [chat_id, message_id, model] = c.callbackQuery.data.split("|", 3)
     await Promise.all([
-        c.session.env.YATCC.put(`${chat_id}-model`, model),
+        env.YATCC.put(`${chat_id}-model`, model),
         c.answerCallbackQuery(),
         c.api.editMessageText(chat_id, parseInt(message_id), `当前模型: \n${modelMap[model as models]?.name}`, {
             entities: [{ type: "bold", offset: 0, length: 5 }],

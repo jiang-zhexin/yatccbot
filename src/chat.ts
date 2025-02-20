@@ -47,6 +47,8 @@ chat.command("chat", async (c, next) => {
 chat.on("message:text").filter(
     (c) => c.session.messages !== undefined,
     async (c) => {
+        const { env, ctx, messages } = c.session
+
         const useTool = (() => {
             const hasUrl = c.msg.entities?.findIndex((e) => e.type === "url" || e.type === "text_link")
             if (hasUrl !== undefined && hasUrl >= 0) {
@@ -54,73 +56,59 @@ chat.on("message:text").filter(
             }
             return undefined
         })()
-        const modelMatedata = modelMap[(await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"]
-        const model = ChooseModel(c.session.env, modelMatedata)
 
-        const message = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
+        const modelMatedata = modelMap[(await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"]
+        const model = ChooseModel(env, modelMatedata)
+
+        const replyMessage = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
+
         const edit = async (textBuffer: string) => {
             const result = Markdown(textBuffer)
-            await c.api.editMessageText(message.chat.id, message.message_id, result.text, { entities: result.entities })
+            await c.api.editMessageText(replyMessage.chat.id, replyMessage.message_id, result.text, { entities: result.entities })
             return result
         }
+
         if (modelMatedata.useTool && useTool) {
             edit("调用函数中...")
             await generateText({
                 model: model,
-                messages: c.session.messages,
+                messages: messages,
                 maxTokens: 2048,
                 temperature: 0.6,
                 tools: { useTool },
                 onStepFinish: (result) => {
                     if (result.finishReason === "tool-calls") {
                         edit("调用函数成功，等待生成...")
-                        c.session.messages?.push(...result.response.messages)
+                        messages?.push(...result.response.messages)
                     }
                 },
             }).catch((err) => {
                 console.log(err)
-                c.session.ctx.waitUntil(edit("函数调用发生错误! "))
+                ctx.waitUntil(edit("函数调用发生错误! "))
                 throw err
             })
         }
-        const saveContext = (assistant: string) => {
-            c.session.messages?.push({ role: "assistant", content: assistant })
-            c.session.messages?.shift()
-            return c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
-                expirationTtl: 60 * 60 * 24 * 7,
-            })
-        }
-        if (!modelMatedata.stream) {
-            edit("该模型不支持流式，等待时间较长...")
-            c.session.ctx.waitUntil(
-                generateText({
-                    model: model,
-                    messages: c.session.messages,
-                    maxTokens: 2048,
-                    temperature: 0.6,
-                    onStepFinish: async (result) => {
-                        const rawText = await edit(result.text)
-                        await saveContext(rawText.text)
-                    },
+
+        const result = streamText({
+            model: model,
+            messages: messages,
+            maxTokens: 2048,
+            temperature: 0.6,
+            onFinish: async (result) => {
+                const rawText = Markdown(result.text).text
+                messages?.push({ role: "assistant", content: rawText })
+                messages?.shift()
+                await env.YATCC.put(`${replyMessage.chat.id}-${replyMessage.message_id}`, JSON.stringify(messages), {
+                    expirationTtl: 60 * 60 * 24 * 7,
                 })
-            )
-        } else {
-            const result = streamText({
-                model: model,
-                messages: c.session.messages,
-                maxTokens: 2048,
-                temperature: 0.6,
-                onFinish: async (result) => {
-                    const rawText = Markdown(result.text).text
-                    await saveContext(rawText)
-                },
-            })
-            const streamEdit = new WritableStream({
-                async write(chunk: string, controller) {
-                    await edit(chunk)
-                },
-            })
-            c.session.ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(64)).pipeTo(streamEdit))
-        }
+            },
+        })
+
+        const streamEdit = new WritableStream({
+            async write(chunk: string, controller) {
+                await edit(chunk)
+            },
+        })
+        ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(64)).pipeTo(streamEdit))
     }
 )
