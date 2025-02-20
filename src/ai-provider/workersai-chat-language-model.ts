@@ -1,8 +1,8 @@
-import { LanguageModelV1StreamPart, type LanguageModelV1, type LanguageModelV1CallWarning } from "@ai-sdk/provider"
+import type { LanguageModelV1StreamPart, LanguageModelV1CallOptions, LanguageModelV1, LanguageModelV1CallWarning } from "@ai-sdk/provider"
+import { events } from "fetch-event-stream"
+
 import { convertToWorkersAIChatMessages } from "./convert-to-workersai-chat-messages"
 import type { WorkersAIChatSettings } from "./workersai-chat-settings"
-
-import { events } from "fetch-event-stream"
 import type { GenerateResult, StreamChunk } from "./workersai-chat-type"
 
 type WorkersAIChatConfig = {
@@ -36,35 +36,24 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
         maxTokens,
         temperature,
         topP,
+        topK,
         frequencyPenalty,
         presencePenalty,
         seed,
-    }: Parameters<LanguageModelV1["doGenerate"]>[0]) {
+    }: LanguageModelV1CallOptions): {
+        args: AiTextGenerationInput
+        warnings: LanguageModelV1CallWarning[]
+    } {
         const type = mode.type
-
         const warnings: LanguageModelV1CallWarning[] = []
-
-        if (frequencyPenalty != null) {
-            warnings.push({
-                type: "unsupported-setting",
-                setting: "frequencyPenalty",
-            })
-        }
-
-        if (presencePenalty != null) {
-            warnings.push({
-                type: "unsupported-setting",
-                setting: "presencePenalty",
-            })
-        }
-
-        const baseArgs = {
-            model: this.modelId,
-            safe_prompt: this.settings.safePrompt,
+        const baseArgs: AiTextGenerationInput = {
             max_tokens: maxTokens,
-            temperature,
+            temperature: temperature,
             top_p: topP,
-            random_seed: seed,
+            top_k: topK,
+            seed: seed,
+            frequency_penalty: frequencyPenalty,
+            presence_penalty: presencePenalty,
             messages: convertToWorkersAIChatMessages(prompt),
         }
 
@@ -79,7 +68,6 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
                 return {
                     args: {
                         ...baseArgs,
-                        response_format: { type: "json_object" },
                     },
                     warnings,
                 }
@@ -88,7 +76,6 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
                 return {
                     args: {
                         ...baseArgs,
-                        tool_choice: "any",
                         tools: [{ type: "function", function: mode.tool }],
                     },
                     warnings,
@@ -101,9 +88,9 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
         }
     }
 
-    async doGenerate(options: Parameters<LanguageModelV1["doGenerate"]>[0]): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
+    async doGenerate(options: LanguageModelV1CallOptions): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
         const { args, warnings } = this.getArgs(options)
-        const response = (await this.config.binding.run(args.model, { ...args }, { gateway: this.config.gateway })) as GenerateResult
+        const response = (await this.config.binding.run(this.modelId, args, { gateway: this.config.gateway })) as GenerateResult
         if (response instanceof ReadableStream) {
             throw new Error("This shouldn't happen")
         }
@@ -126,9 +113,9 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
         }
     }
 
-    async doStream(options: Parameters<LanguageModelV1["doStream"]>[0]): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
+    async doStream(options: LanguageModelV1CallOptions): Promise<Awaited<ReturnType<LanguageModelV1["doStream"]>>> {
         const { args, warnings } = this.getArgs(options)
-        const response = await this.config.binding.run(args.model, { ...args, stream: true }, { gateway: this.config.gateway })
+        const response = await this.config.binding.run(this.modelId, { ...args, stream: true }, { gateway: this.config.gateway })
         if (!(response instanceof ReadableStream)) {
             throw new Error("This shouldn't happen")
         }
