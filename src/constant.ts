@@ -28,11 +28,3 @@ export const modelMap = {
         provider: "google-ai-studio",
     },
 } as const satisfies Record<string, modelMatedata>
-
-interface modelMatedata {
-    id: string
-    name: string
-    stream: boolean
-    useTool: boolean
-    provider: "workers-ai" | "google-ai-studio"
-}

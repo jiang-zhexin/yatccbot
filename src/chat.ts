@@ -1,10 +1,9 @@
 import { Composer } from "grammy"
 import { type CoreMessage, generateText, streamText } from "ai"
-import { createGoogleGenerativeAI } from "@ai-sdk/google"
 
 import { Markdown } from "./utils/transform"
-import { createWorkersAI } from "./ai-provider"
 import { TextBufferTransformStream } from "./utils/textstream"
+import { ChooseModel } from "./utils/choosemodel"
 import { getWebsiteContent } from "./tool/getWebsiteContent"
 import { modelMap } from "./constant"
 
@@ -56,31 +55,7 @@ chat.on("message:text").filter(
             return undefined
         })()
         const modelMatedata = modelMap[(await c.session.env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"]
-
-        const model = (() => {
-            switch (modelMatedata.provider) {
-                case "workers-ai":
-                    const workersAI = createWorkersAI({ binding: c.session.env.AI, gateway: { id: "yatccbot", collectLog: true } })
-                    return workersAI(modelMatedata.id)
-
-                case "google-ai-studio":
-                    const googleAI = createGoogleGenerativeAI({
-                        apiKey: c.session.env.GOOGLE_GENERATIVE_AI_API_KEY,
-                        fetch: async (input, init): Promise<Response> => {
-                            const req = new Request(input, init)
-                            const { pathname, searchParams } = new URL(req.url)
-
-                            return c.session.env.AI.gateway("yatccbot").run({
-                                provider: "google-ai-studio",
-                                endpoint: `${pathname}?${searchParams}`,
-                                headers: Object.fromEntries(req.headers.entries()),
-                                query: await req.json(),
-                            })
-                        },
-                    })
-                    return googleAI(modelMatedata.id)
-            }
-        })()
+        const model = ChooseModel(c.session.env, modelMatedata)
 
         const message = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
         const edit = async (textBuffer: string) => {
@@ -111,7 +86,6 @@ chat.on("message:text").filter(
         const saveContext = (assistant: string) => {
             c.session.messages?.push({ role: "assistant", content: assistant })
             c.session.messages?.shift()
-            console.log(c.session.messages)
             return c.session.env.YATCC.put(`${message.chat.id}-${message.message_id}`, JSON.stringify(c.session.messages), {
                 expirationTtl: 60 * 60 * 24 * 7,
             })
@@ -146,7 +120,7 @@ chat.on("message:text").filter(
                     await edit(chunk)
                 },
             })
-            c.session.ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(32)).pipeTo(streamEdit))
+            c.session.ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(64)).pipeTo(streamEdit))
         }
     }
 )
