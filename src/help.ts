@@ -12,10 +12,10 @@ help.command(["start", "help"], async (c) => {
 
 3\\. 回复 Bot 的消息 \\(作为上下文\\) 以继续对话, 该上下文保存 7 天
 
-*License*
-[deepseek r1 distill qwen 32b](https://github.com/deepseek-ai/DeepSeek-R1/blob/main/LICENSE)
+*Terms and License*
 [qwen 1\\.5 14b](https://github.com/QwenLM/Qwen/blob/main/LICENSE)
 [llama 3\\.3 70b](https://github.com/meta-llama/llama-models/blob/main/models/llama3_3/LICENSE)
+[gemma 7b](https://ai.google.dev/gemma/terms)
 
 [*项目地址*](https://github.com/jiang-zhexin/yatccbot)
 本项目使用 AGPL\\-3\\.0 license
