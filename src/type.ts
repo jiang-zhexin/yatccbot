@@ -1,10 +1,10 @@
-import type { Context, SessionFlavor } from "grammy"
+import type { Context } from "grammy"
 import type { CoreMessage } from "ai"
 import { modelMap } from "./constant"
+import { TextGenerationModels } from "./ai-provider/workersai-models"
 
 declare global {
     type MyContext = Context & { config: BotConfig }
-    type BaseAiTextGenerationModels = Exclude<filter<AiModels, BaseAiTextGeneration>, filter<AiModels, BaseAiTextToImage>>
     type models = keyof typeof modelMap
     type modelMatedata = workersAImodel | googleAiAtudio
 }
@@ -15,11 +15,9 @@ interface BotConfig {
     AiMessages?: CoreMessage[]
 }
 
-type filter<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T]
-
 interface workersAImodel extends matedata {
     provider: "workers-ai"
-    id: BaseAiTextGenerationModels
+    id: TextGenerationModels
 }
 
 interface googleAiAtudio extends matedata {

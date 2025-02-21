@@ -3,7 +3,8 @@ import { events } from "fetch-event-stream"
 
 import { convertToWorkersAIChatMessages } from "./convert-to-workersai-chat-messages"
 import type { WorkersAIChatSettings } from "./workersai-chat-settings"
-import type { GenerateResult, StreamChunk } from "./workersai-chat-type"
+import type { TextGenerationModels } from "./workersai-models"
+import { mapWorkersAIUsage } from "./map-workersai-usage"
 
 type WorkersAIChatConfig = {
     provider: string
@@ -15,12 +16,12 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
     readonly specificationVersion = "v1"
     readonly defaultObjectGenerationMode = "json"
 
-    readonly modelId: BaseAiTextGenerationModels
+    readonly modelId: TextGenerationModels
     readonly settings: WorkersAIChatSettings
 
     private readonly config: WorkersAIChatConfig
 
-    constructor(modelId: BaseAiTextGenerationModels, settings: WorkersAIChatSettings, config: WorkersAIChatConfig) {
+    constructor(modelId: TextGenerationModels, settings: WorkersAIChatSettings, config: WorkersAIChatConfig) {
         this.modelId = modelId
         this.settings = settings
         this.config = config
@@ -90,25 +91,22 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
 
     async doGenerate(options: LanguageModelV1CallOptions): Promise<Awaited<ReturnType<LanguageModelV1["doGenerate"]>>> {
         const { args, warnings } = this.getArgs(options)
-        const response = (await this.config.binding.run(this.modelId, args, { gateway: this.config.gateway })) as GenerateResult
-        if (response instanceof ReadableStream) {
+        const output = await this.config.binding.run(this.modelId, args, { gateway: this.config.gateway })
+        if (output instanceof ReadableStream) {
             throw new Error("This shouldn't happen")
         }
 
         return {
-            text: response.response ?? "",
-            toolCalls: response.tool_calls?.map((toolCall) => ({
+            text: output.response,
+            toolCalls: output.tool_calls?.map((toolCall) => ({
                 toolCallType: "function",
                 toolCallId: toolCall.name,
                 toolName: toolCall.name,
                 args: JSON.stringify(toolCall.arguments || {}),
             })),
-            finishReason: response.tool_calls ? "tool-calls" : "stop",
+            finishReason: output.tool_calls ? "tool-calls" : "stop",
             rawCall: { rawPrompt: args.messages, rawSettings: args },
-            usage: {
-                promptTokens: response.usage.prompt_tokens,
-                completionTokens: response.usage.completion_tokens,
-            },
+            usage: mapWorkersAIUsage(output),
             warnings,
         }
     }
@@ -120,30 +118,22 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
             throw new Error("This shouldn't happen")
         }
 
-        const textStream = events(new Response(response))
+        const chunkEvent = events(new Response(response))
+        let usage = { promptTokens: 0, completionTokens: 0 }
+
         return {
             stream: new ReadableStream<LanguageModelV1StreamPart>({
                 async start(controller) {
-                    for await (const event of textStream) {
+                    for await (const event of chunkEvent) {
                         if (!event.data) {
                             continue
                         }
                         if (event.data === "[DONE]") {
-                            controller.close()
-                            return
+                            break
                         }
-                        const chunk = JSON.parse(event.data) as StreamChunk
+                        const chunk = JSON.parse(event.data)
                         if (chunk.usage) {
-                            controller.enqueue({
-                                type: "finish",
-                                finishReason: "stop",
-                                usage: {
-                                    promptTokens: chunk.usage.prompt_tokens,
-                                    completionTokens: chunk.usage.completion_tokens,
-                                },
-                            })
-                            controller.close()
-                            return
+                            usage = mapWorkersAIUsage(chunk)
                         }
                         chunk.response.length &&
                             controller.enqueue({
@@ -151,6 +141,12 @@ export class WorkersAIChatLanguageModel implements LanguageModelV1 {
                                 textDelta: chunk.response,
                             })
                     }
+                    controller.enqueue({
+                        type: "finish",
+                        finishReason: "stop",
+                        usage: usage,
+                    })
+                    controller.close()
                 },
             }),
             rawCall: { rawPrompt: args.messages, rawSettings: args },

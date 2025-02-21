@@ -2,10 +2,11 @@
 
 import { WorkersAIChatLanguageModel } from "./workersai-chat-language-model"
 import type { WorkersAIChatSettings } from "./workersai-chat-settings"
+import type { TextGenerationModels } from "./workersai-models"
 
 export interface WorkersAI {
-    (modelId: BaseAiTextGenerationModels, settings?: WorkersAIChatSettings): WorkersAIChatLanguageModel
-    chat(modelId: BaseAiTextGenerationModels, settings?: WorkersAIChatSettings): WorkersAIChatLanguageModel
+    (modelId: TextGenerationModels, settings?: WorkersAIChatSettings): WorkersAIChatLanguageModel
+    chat(modelId: TextGenerationModels, settings?: WorkersAIChatSettings): WorkersAIChatLanguageModel
 }
 
 export interface WorkersAISettings {
@@ -14,14 +15,14 @@ export interface WorkersAISettings {
 }
 
 export function createWorkersAI(options: WorkersAISettings): WorkersAI {
-    const createChatModel = (modelId: BaseAiTextGenerationModels, settings: WorkersAIChatSettings = {}): WorkersAIChatLanguageModel =>
+    const createChatModel = (modelId: TextGenerationModels, settings: WorkersAIChatSettings = {}) =>
         new WorkersAIChatLanguageModel(modelId, settings, {
             provider: "workersai.chat",
             binding: options.binding,
             gateway: options.gateway,
         })
 
-    const provider = function (modelId: BaseAiTextGenerationModels, settings?: WorkersAIChatSettings): WorkersAIChatLanguageModel {
+    const provider = function (modelId: TextGenerationModels, settings?: WorkersAIChatSettings) {
         if (new.target) {
             throw new Error("The WorkersAI model function cannot be called with the new keyword.")
         }
