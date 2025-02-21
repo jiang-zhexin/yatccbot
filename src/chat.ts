@@ -19,35 +19,37 @@ chat.on("message:text")
     .filter((c) => c.msg.text.length > 2) // 短信息很可能不是询问 LLM
     .filter((c) => !c.msg.text.startsWith("/"))
     .use(async (c, next) => {
-        const messages =
-            (await c.session.env.YATCC.get<CoreMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
+        const { env } = c.config
+
+        const AiMessages =
+            (await env.YATCC.get<CoreMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
                 type: "json",
             })) ?? []
-        messages.unshift(system)
-        messages.push({ role: "user", content: c.msg.text })
-        c.session.messages = messages
+        AiMessages.unshift(system)
+        AiMessages.push({ role: "user", content: c.msg.text })
+        c.config.AiMessages = AiMessages
         await next()
     })
 
 chat.command("chat", async (c, next) => {
-    const messages: CoreMessage[] = [system]
+    const AiMessages: CoreMessage[] = [system]
     if (c.msg.reply_to_message?.quote?.text) {
-        messages.push({ role: "user", content: c.msg.reply_to_message.quote.text })
+        AiMessages.push({ role: "user", content: c.msg.reply_to_message.quote.text })
     } else {
-        if (c.msg.reply_to_message?.text) messages.push({ role: "user", content: c.msg.reply_to_message.text })
+        if (c.msg.reply_to_message?.text) AiMessages.push({ role: "user", content: c.msg.reply_to_message.text })
     }
-    if (c.match.length > 0) messages.push({ role: "user", content: c.match })
-    if (messages.length === 1) {
+    if (c.match.length > 0) AiMessages.push({ role: "user", content: c.match })
+    if (AiMessages.length === 1) {
         return await c.reply("请输入文字", { reply_parameters: { message_id: c.msg.message_id } })
     }
-    c.session.messages = messages
+    c.config.AiMessages = AiMessages
     await next()
 })
 
 chat.on("message:text").filter(
-    (c) => c.session.messages !== undefined,
+    (c) => c.config.AiMessages !== undefined,
     async (c) => {
-        const { env, ctx, messages } = c.session
+        const { env, ctx, AiMessages } = c.config
 
         const useTool = (() => {
             const hasUrl = c.msg.entities?.findIndex((e) => e.type === "url" || e.type === "text_link")
@@ -72,14 +74,14 @@ chat.on("message:text").filter(
             edit("调用函数中...")
             await generateText({
                 model: model,
-                messages: messages,
+                messages: AiMessages,
                 maxTokens: 2048,
                 temperature: 0.6,
                 tools: { useTool },
                 onStepFinish: (result) => {
                     if (result.finishReason === "tool-calls") {
                         edit("调用函数成功，等待生成...")
-                        messages?.push(...result.response.messages)
+                        AiMessages?.push(...result.response.messages)
                     }
                 },
             }).catch((err) => {
@@ -91,14 +93,14 @@ chat.on("message:text").filter(
 
         const result = streamText({
             model: model,
-            messages: messages,
+            messages: AiMessages,
             maxTokens: 2048,
             temperature: 0.6,
             onFinish: async (result) => {
                 const rawText = Markdown(result.text).text
-                messages?.push({ role: "assistant", content: rawText })
-                messages?.shift()
-                await env.YATCC.put(`${replyMessage.chat.id}-${replyMessage.message_id}`, JSON.stringify(messages), {
+                AiMessages?.push({ role: "assistant", content: rawText })
+                AiMessages?.shift()
+                await env.YATCC.put(`${replyMessage.chat.id}-${replyMessage.message_id}`, JSON.stringify(AiMessages), {
                     expirationTtl: 60 * 60 * 24 * 7,
                 })
             },

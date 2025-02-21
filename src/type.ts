@@ -3,16 +3,16 @@ import type { CoreMessage } from "ai"
 import { modelMap } from "./constant"
 
 declare global {
-    type MyContext = Context & SessionFlavor<SessionData>
+    type MyContext = Context & { config: BotConfig }
     type BaseAiTextGenerationModels = Exclude<filter<AiModels, BaseAiTextGeneration>, filter<AiModels, BaseAiTextToImage>>
     type models = keyof typeof modelMap
     type modelMatedata = workersAImodel | googleAiAtudio
 }
 
-interface SessionData {
+interface BotConfig {
     ctx: ExecutionContext
     env: Env
-    messages?: CoreMessage[]
+    AiMessages?: CoreMessage[]
 }
 
 type filter<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T]

@@ -5,7 +5,7 @@ import { modelMap } from "./constant"
 export const setting = new Composer<MyContext>()
 
 setting.command("models", async (c) => {
-    const { env } = c.session
+    const { env } = c.config
 
     const [model, message] = await Promise.all([
         env.YATCC.get<models>(`${c.msg.chat.id}-model`),
@@ -35,7 +35,7 @@ setting.command("models", async (c) => {
 })
 
 setting.on("callback_query:data", async (c) => {
-    const { env } = c.session
+    const { env } = c.config
 
     const [chat_id, message_id, model] = c.callbackQuery.data.split("|", 3)
     await Promise.all([

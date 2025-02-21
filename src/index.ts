@@ -1,4 +1,4 @@
-import { Bot, session, webhookCallback } from "grammy"
+import { Bot, webhookCallback } from "grammy"
 import { chat } from "./chat"
 import { log } from "./log"
 import { help } from "./help"
@@ -8,7 +8,10 @@ export default {
     async fetch(request, env, ctx): Promise<Response> {
         const bot = new Bot<MyContext>(env.BOT_TOKEN, { botInfo: env.BOT_INFO })
 
-        bot.use(session({ initial: () => ({ env, ctx }) }))
+        bot.use(async (c, next) => {
+            c.config = { env: env, ctx: ctx }
+            await next()
+        })
         bot.use(log)
         bot.use(help)
         bot.use(setting)
