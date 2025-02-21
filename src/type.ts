@@ -29,6 +29,7 @@ interface matedata {
     name: string
     stream: boolean
     useTool: boolean
+    think: boolean
 }
 
 type GoogleGenerativeAIModelId =

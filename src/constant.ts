@@ -5,6 +5,7 @@ export const modelMap = {
         stream: true,
         useTool: false,
         provider: "workers-ai",
+        think: false,
     },
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast": {
         id: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
@@ -12,6 +13,7 @@ export const modelMap = {
         stream: true,
         useTool: true,
         provider: "workers-ai",
+        think: false,
     },
     "@cf/google/gemma-7b-it-lora": {
         id: "@cf/google/gemma-7b-it-lora",
@@ -19,6 +21,7 @@ export const modelMap = {
         stream: true,
         useTool: false,
         provider: "workers-ai",
+        think: false,
     },
     "gemini-2.0-flash-001": {
         id: "gemini-2.0-flash-001",
@@ -26,5 +29,14 @@ export const modelMap = {
         stream: true,
         useTool: true,
         provider: "google-ai-studio",
+        think: false,
+    },
+    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
+        id: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+        name: "deepseek r1 distill qwen 32b",
+        stream: true,
+        useTool: false,
+        provider: "workers-ai",
+        think: true,
     },
 } as const satisfies Record<string, modelMatedata>
