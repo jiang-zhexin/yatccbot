@@ -1,55 +1,38 @@
 import { Composer } from "grammy"
-import type { InlineKeyboardButton } from "grammy/types"
+import { Menu, MenuRange } from "@grammyjs/menu"
+
 import { modelMap } from "./constant"
 
 export const setting = new Composer<MyContext>()
 
+export const menuSetting = new Menu<MyContext>("model setting").dynamic((c) => {
+    const { env, ctx } = c.config
+    const range = new MenuRange<MyContext>()
+
+    let addRow = false
+    for (const model of Object.values(modelMap)) {
+        if (model.provider === "google-ai-studio" && !env.GOOGLE_GENERATIVE_AI_API_KEY) continue
+
+        range.text(model.name, async (c) => {
+            c.menu.close()
+            ctx.waitUntil(env.YATCC.put(`${c.chatId}-model`, model.id))
+            await c.editMessageText(`当前模型: ${model.name}`, { entities: [{ type: "bold", offset: 0, length: 5 }] })
+        })
+
+        if (addRow) range.row()
+        addRow = !addRow
+    }
+    return range
+})
+
 setting.command("models", async (c) => {
     const { env } = c.config
 
-    const [model, message] = await Promise.all([
-        env.YATCC.get<models>(`${c.msg.chat.id}-model`),
-        c.reply("当前模型: ", {
-            reply_parameters: { message_id: c.msg.message_id },
-            entities: [{ type: "bold", offset: 0, length: 5 }],
-        }),
-    ])
+    const model = (await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
 
-    const inline_keyboard: InlineKeyboardButton[][] = [
-        [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/qwen/qwen1.5-14b-chat-awq")],
-        [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/meta/llama-3.3-70b-instruct-fp8-fast")],
-        [makeInlineKeyboard(c.msg.chat.id, message.message_id, "@cf/google/gemma-7b-it-lora")],
-    ]
-    if (env.GOOGLE_GENERATIVE_AI_API_KEY)
-        inline_keyboard.push([makeInlineKeyboard(c.msg.chat.id, message.message_id, "gemini-2.0-flash-001")])
-
-    await c.api.editMessageText(
-        message.chat.id,
-        message.message_id,
-        `当前模型: \n${modelMap[model ?? "@cf/qwen/qwen1.5-14b-chat-awq"]?.name}`,
-        {
-            reply_markup: { inline_keyboard: inline_keyboard },
-            entities: [{ type: "bold", offset: 0, length: 5 }],
-        }
-    )
+    await c.reply(`当前模型: ${modelMap[model].name}`, {
+        reply_markup: menuSetting,
+        entities: [{ type: "bold", offset: 0, length: 5 }],
+        reply_parameters: { message_id: c.msg.message_id },
+    })
 })
-
-setting.on("callback_query:data", async (c) => {
-    const { env } = c.config
-
-    const [chat_id, message_id, model] = c.callbackQuery.data.split("|", 3)
-    await Promise.all([
-        env.YATCC.put(`${chat_id}-model`, model),
-        c.answerCallbackQuery(),
-        c.api.editMessageText(chat_id, parseInt(message_id), `当前模型: \n${modelMap[model as models]?.name}`, {
-            entities: [{ type: "bold", offset: 0, length: 5 }],
-        }),
-    ])
-})
-
-function makeInlineKeyboard(chat_id: number, message_id: number, model: models): InlineKeyboardButton {
-    return {
-        text: modelMap[model]?.name,
-        callback_data: `${chat_id}|${message_id}|${model}`,
-    }
-}
