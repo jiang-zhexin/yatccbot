@@ -14,7 +14,7 @@ binding = "AI"
 [vars.BOT_INFO]
 id = 7618804505
 is_bot = true
-first_name = "YA Privacy Chat Bot"
+first_name = "YA Tree Context Chat Bot"
 username = "yatccbot"
 can_join_groups = true
 can_read_all_group_messages = false

@@ -4,7 +4,7 @@ export const help = new Composer<MyContext>()
 
 help.command(["start", "help"], async (c) => {
     await c.reply(
-        `*Yet Another Privacy Chat Bot*
+        `*Yet Another Tree Context Chat Bot*
 
 1\\. 此 Bot 工作在 [隐私模式](https://core.telegram.org/bots/features#privacy-mode) 下, 它不关心 \\(也不会收到\\) 除上下文外的任何消息
 
