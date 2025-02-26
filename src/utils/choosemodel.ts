@@ -1,7 +1,6 @@
 import { extractReasoningMiddleware, wrapLanguageModel, type LanguageModelV1 } from "ai"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-
-import { createWorkersAI } from "../ai-provider"
+import { createWorkersAI } from "workers-ai-provider"
 
 export function ChooseModel(env: Env, modelMatedata: modelMatedata): LanguageModelV1 {
     const model = chooseModel(env, modelMatedata)

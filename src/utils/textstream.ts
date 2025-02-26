@@ -1,4 +1,6 @@
-export class TextBufferTransformStream extends TransformStream<string, string> {
+import { Markdown } from "./transform"
+
+export class TextBufferTransformStream extends TransformStream<string, result> {
     private buffer
     private sendedSize: number
     private maxBufferSize: number
@@ -13,17 +15,19 @@ export class TextBufferTransformStream extends TransformStream<string, string> {
         this.maxBufferSize = maxBufferSize
     }
 
-    private transform(chunk: string, controller: TransformStreamDefaultController<string>) {
-        this.buffer += this.sendedSize ? chunk : chunk.trimStart()
-        if (this.buffer.length - this.sendedSize > Math.min(this.sendedSize, this.maxBufferSize)) {
-            this.sendedSize = this.buffer.length
-            controller.enqueue(this.buffer)
+    private transform(chunk: string, controller: TransformStreamDefaultController<result>) {
+        this.buffer += this.buffer.length ? chunk : chunk.trimStart()
+        const result = Markdown(this.buffer)
+        if (result.text.length - this.sendedSize > Math.min(this.sendedSize, this.maxBufferSize)) {
+            this.sendedSize = result.text.length
+            controller.enqueue(result)
         }
     }
 
-    private flush(controller: TransformStreamDefaultController<string>) {
-        if (this.buffer.length > this.sendedSize) {
-            controller.enqueue(this.buffer)
+    private flush(controller: TransformStreamDefaultController<result>) {
+        const result = Markdown(this.buffer)
+        if (result.text.length > this.sendedSize) {
+            controller.enqueue(result)
         }
     }
 }

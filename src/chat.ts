@@ -65,11 +65,11 @@ chat.on("message:text").filter(
 
         const replyMessage = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
 
-        const preEdit = (text: string, entities?: MessageEntity[]) =>
+        let edit = (text: string, entities?: MessageEntity[]) =>
             c.api.editMessageText(replyMessage.chat.id, replyMessage.message_id, text, { entities })
 
         if (modelMatedata.useTool && useTool) {
-            preEdit("调用函数中...")
+            edit("调用函数中...")
             await generateText({
                 model: model,
                 messages: AiMessages,
@@ -78,13 +78,13 @@ chat.on("message:text").filter(
                 tools: { useTool },
                 onStepFinish: (result) => {
                     if (result.finishReason === "tool-calls") {
-                        preEdit("调用函数成功，等待生成...")
+                        edit("调用函数成功，等待生成...")
                         AiMessages?.push(...result.response.messages)
                     }
                 },
             }).catch((err) => {
                 console.log(err)
-                ctx.waitUntil(preEdit("函数调用发生错误! "))
+                ctx.waitUntil(edit("函数调用发生错误! "))
                 throw err
             })
         }
@@ -104,34 +104,27 @@ chat.on("message:text").filter(
             },
         })
 
-        let edit = async (textBuffer: string) => {
-            const result = Markdown(textBuffer)
-            await preEdit(result.text, result.entities)
-            return result
-        }
-
         ctx.waitUntil(
             result.reasoning.then((reasoning) => {
                 if (!reasoning) return
                 const message = Markdown(reasoning)
-                edit = async (textBuffer: string) => {
-                    const result = Markdown(textBuffer)
-                    await preEdit(message.text + result.text, [
-                        { type: "expandable_blockquote", offset: 0, length: message.text.length },
-                        ...message.entities,
-                        ...result.entities.map((e) => {
-                            e.offset += message.text.length
-                            return e
-                        }),
-                    ])
-                    return result
-                }
+                edit = async (text: string, entities?: MessageEntity[]) =>
+                    c.api.editMessageText(replyMessage.chat.id, replyMessage.message_id, message.text + text, {
+                        entities: [
+                            { type: "expandable_blockquote", offset: 0, length: message.text.length },
+                            ...message.entities,
+                            ...entities?.map((e) => {
+                                e.offset += message.text.length
+                                return e
+                            }) ?? [],
+                        ]
+                    })
             })
         )
 
-        const streamEdit = new WritableStream({
-            async write(chunk: string, controller) {
-                await edit(chunk)
+        const streamEdit = new WritableStream<result>({
+            async write(chunk: result, controller) {
+                await edit(chunk.text, chunk.entities)
             },
         })
         ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(64)).pipeTo(streamEdit))

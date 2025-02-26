@@ -1,7 +1,6 @@
-import { MessageEntity } from "grammy/types"
 import { lexer, type Token, type Tokens } from "marked"
 
-export function Markdown(text: string) {
+export function Markdown(text: string): result {
     const tokens = lexer(text)
     return format(tokens)
 }
@@ -105,15 +104,15 @@ function format(tokens: Token[], offset: number = 0): result {
             case "list": {
                 const pre = token.ordered
                     ? (function* (num: number) {
-                          while (true) {
-                              yield `${num++}. `
-                          }
-                      })(token.start)
+                        while (true) {
+                            yield `${num++}. `
+                        }
+                    })(token.start)
                     : (function* () {
-                          while (true) {
-                              yield "• "
-                          }
-                      })()
+                        while (true) {
+                            yield "• "
+                        }
+                    })()
                 for (const t of token.items as Tokens.ListItem[]) {
                     const p = pre.next().value
                     const r = format(t.tokens, offset + p.length)
@@ -190,9 +189,4 @@ function format(tokens: Token[], offset: number = 0): result {
         }
     }
     return result
-}
-
-interface result {
-    text: string
-    entities: MessageEntity[]
 }

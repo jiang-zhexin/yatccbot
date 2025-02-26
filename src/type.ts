@@ -1,12 +1,16 @@
 import type { Context } from "grammy"
+import type { MessageEntity } from "grammy/types"
 import type { CoreMessage } from "ai"
 import { modelMap } from "./constant"
-import { TextGenerationModels } from "./ai-provider/workersai-models"
 
 declare global {
     type MyContext = Context & { config: BotConfig }
     type models = keyof typeof modelMap
     type modelMatedata = workersAImodel | googleAiAtudio
+    type result = {
+        text: string
+        entities: MessageEntity[]
+    }
 }
 
 interface BotConfig {
@@ -31,6 +35,9 @@ interface matedata {
     useTool: boolean
     think: boolean
 }
+
+type TextGenerationModels = Exclude<value2key<AiModels, BaseAiTextGeneration>, value2key<AiModels, BaseAiTextToImage>>
+type value2key<T, V> = { [K in keyof T]: T[K] extends V ? K : never }[keyof T]
 
 type GoogleGenerativeAIModelId =
     | "gemini-1.5-flash"
