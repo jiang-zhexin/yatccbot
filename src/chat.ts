@@ -5,7 +5,6 @@ import { type CoreMessage, generateText, streamText } from "ai"
 import { Markdown } from "./utils/transform"
 import { TextBufferTransformStream } from "./utils/textstream"
 import { ChooseModel } from "./utils/choosemodel"
-import { getWebsiteContent } from "./tool/getWebsiteContent"
 import { modelMap } from "./constant"
 
 export const chat = new Composer<MyContext>()
@@ -52,14 +51,6 @@ chat.on("message:text").filter(
     async (c) => {
         const { env, ctx, AiMessages } = c.config
 
-        const useTool = (() => {
-            const hasUrl = c.msg.entities?.findIndex((e) => e.type === "url" || e.type === "text_link")
-            if (hasUrl !== undefined && hasUrl >= 0) {
-                return getWebsiteContent
-            }
-            return undefined
-        })()
-
         const modelMatedata = modelMap[(await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"]
         const model = ChooseModel(env, modelMatedata)
 
@@ -67,27 +58,6 @@ chat.on("message:text").filter(
 
         let edit = (text: string, entities?: MessageEntity[]) =>
             c.api.editMessageText(replyMessage.chat.id, replyMessage.message_id, text, { entities })
-
-        if (modelMatedata.useTool && useTool) {
-            edit("调用函数中...")
-            await generateText({
-                model: model,
-                messages: AiMessages,
-                maxTokens: 2048,
-                temperature: 0.6,
-                tools: { useTool },
-                onStepFinish: (result) => {
-                    if (result.finishReason === "tool-calls") {
-                        edit("调用函数成功，等待生成...")
-                        AiMessages?.push(...result.response.messages)
-                    }
-                },
-            }).catch((err) => {
-                console.log(err)
-                ctx.waitUntil(edit("函数调用发生错误! "))
-                throw err
-            })
-        }
 
         const result = streamText({
             model: model,
@@ -113,11 +83,11 @@ chat.on("message:text").filter(
                         entities: [
                             { type: "expandable_blockquote", offset: 0, length: message.text.length },
                             ...message.entities,
-                            ...entities?.map((e) => {
+                            ...(entities?.map((e) => {
                                 e.offset += message.text.length
                                 return e
-                            }) ?? [],
-                        ]
+                            }) ?? []),
+                        ],
                     })
             })
         )
