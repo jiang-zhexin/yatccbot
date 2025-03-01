@@ -1,6 +1,6 @@
 import { Composer } from "grammy"
 import type { MessageEntity } from "@grammyjs/types"
-import { type CoreMessage, generateText, streamText } from "ai"
+import { type CoreMessage, streamText } from "ai"
 
 import { Markdown } from "./utils/transform"
 import { TextBufferTransformStream } from "./utils/textstream"
