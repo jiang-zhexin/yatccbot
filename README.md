@@ -30,7 +30,7 @@ sequenceDiagram
     Bot-->>-User1: 我扮演一个 telegram 中的机器人。(message6)
 
     User2->>+Bot: (回复 message3) 9.11 和 9.8 哪个大？(message7)
-    Note over Bot: system: [system] <br> user: 你是什么模型？ <br> assistant: 我是 xx 大模型，由 xx 训练。 <br> user: 你能够做什么？ <br> user: 9.11 和 9.8 哪个大？
+    Note over Bot: system: [system] <br> user: 你是什么模型？ <br> assistant: 我是 xx 大模型，由 xx 训练。 <br> user: 9.11 和 9.8 哪个大？
     Bot-->>-User2: 9.8 更大哦！(message8)
 
     User2->>+Bot: (回复 message4) /chat@yatccbot 介绍一下(message9)
