@@ -1,33 +1,44 @@
 import { Markdown } from "./transform"
 
-export class TextBufferTransformStream extends TransformStream<string, result> {
-    private buffer
-    private sendedSize: number
-    private maxBufferSize: number
+type onFinish = (result: result) => void | Promise<void>
 
-    constructor(maxBufferSize: number) {
+export class MarkdownTransformStream extends TransformStream<string, result> {
+    private buffer: string = ""
+    private result: result = { text: "", entities: [] }
+    private onFinish: onFinish
+
+    constructor(onFinish: onFinish) {
         super({
             transform: (chunk, controller) => this.transform(chunk, controller),
             flush: (controller) => this.flush(controller),
         })
-        this.buffer = ""
-        this.sendedSize = 0
-        this.maxBufferSize = maxBufferSize
+        this.onFinish = onFinish
     }
 
     private transform(chunk: string, controller: TransformStreamDefaultController<result>) {
-        this.buffer += this.buffer.length ? chunk : chunk.trimStart()
-        const result = Markdown(this.buffer)
-        if (result.text.length - this.sendedSize > Math.min(this.sendedSize, this.maxBufferSize)) {
-            this.sendedSize = result.text.length
-            controller.enqueue(result)
-        }
+        this.buffer += chunk
+        this.result = Markdown(this.buffer)
+        controller.enqueue(this.result)
     }
 
     private flush(controller: TransformStreamDefaultController<result>) {
-        const result = Markdown(this.buffer)
-        if (result.text.length > this.sendedSize) {
-            controller.enqueue(result)
+        this.onFinish(this.result)
+    }
+}
+
+export class TextBufferTransformStream extends TransformStream<result, result> {
+    private sendedSize: number = 0
+    private maxBufferSize: number
+
+    constructor(maxBufferSize: number) {
+        super({ transform: (chunk, controller) => this.transform(chunk, controller) })
+        this.maxBufferSize = maxBufferSize
+    }
+
+    private transform(chunk: result, controller: TransformStreamDefaultController<result>) {
+        if (chunk.text.length - this.sendedSize > Math.min(this.sendedSize, this.maxBufferSize)) {
+            this.sendedSize = chunk.text.length
+            controller.enqueue(chunk)
         }
     }
 }

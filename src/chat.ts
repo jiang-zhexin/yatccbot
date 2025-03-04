@@ -3,7 +3,7 @@ import type { MessageEntity } from "@grammyjs/types"
 import { type CoreMessage, streamText } from "ai"
 
 import { Markdown } from "./utils/transform"
-import { TextBufferTransformStream } from "./utils/textstream"
+import { MarkdownTransformStream, TextBufferTransformStream } from "./utils/textstream"
 import { ChooseModel } from "./utils/choosemodel"
 import { modelMap } from "./constant"
 
@@ -64,14 +64,6 @@ chat.on("message:text").filter(
             messages: AiMessages,
             maxTokens: 2048,
             temperature: 0.6,
-            onFinish: async (result) => {
-                const rawText = Markdown(result.text).text
-                AiMessages?.push({ role: "assistant", content: rawText })
-                AiMessages?.shift()
-                await env.YATCC.put(`${replyMessage.chat.id}-${replyMessage.message_id}`, JSON.stringify(AiMessages), {
-                    expirationTtl: 60 * 60 * 24 * 7,
-                })
-            },
         })
 
         ctx.waitUntil(
@@ -97,6 +89,22 @@ chat.on("message:text").filter(
                 await edit(chunk.text, chunk.entities)
             },
         })
-        ctx.waitUntil(result.textStream.pipeThrough(new TextBufferTransformStream(64)).pipeTo(streamEdit))
+
+        const SaveContext = async (result: result) => {
+            AiMessages?.push({ role: "assistant", content: result.text })
+            AiMessages?.shift()
+            ctx.waitUntil(
+                env.YATCC.put(`${replyMessage.chat.id}-${replyMessage.message_id}`, JSON.stringify(AiMessages), {
+                    expirationTtl: 60 * 60 * 24 * 7,
+                })
+            )
+        }
+
+        ctx.waitUntil(
+            result.textStream
+                .pipeThrough(new MarkdownTransformStream(SaveContext))
+                .pipeThrough(new TextBufferTransformStream(64))
+                .pipeTo(streamEdit)
+        )
     }
 )
