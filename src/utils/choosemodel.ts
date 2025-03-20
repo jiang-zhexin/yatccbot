@@ -26,12 +26,17 @@ function chooseModel(env: Env, modelMatedata: modelMatedata): LanguageModelV1 {
                     const req = new Request(input, init)
                     const { pathname, searchParams } = new URL(req.url)
 
-                    return env.AI.gateway("yatccbot").run({
-                        provider: "google-ai-studio",
-                        endpoint: `${pathname}?${searchParams}`,
-                        headers: Object.fromEntries(req.headers.entries()),
-                        query: await req.json(),
-                    })
+                    return req
+                        .json()
+                        .then((q) =>
+                            env.AI.gateway("yatccbot").run({
+                                provider: "google-ai-studio",
+                                endpoint: `${pathname}?${searchParams}`,
+                                headers: Object.fromEntries(req.headers.entries()),
+                                query: q,
+                            })
+                        )
+                        .catch(() => fetch(input, init))
                 },
             })
             return googleAI(modelMatedata.id)
