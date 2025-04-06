@@ -21,7 +21,7 @@ interface BotConfig {
 
 interface workersAImodel extends matedata {
     provider: "workers-ai"
-    id: TextGenerationModels
+    id: TextGenerationModels | "@cf/meta/llama-4-scout-17b-16e-instruct"
 }
 
 interface googleAiAtudio extends matedata {
@@ -40,6 +40,7 @@ type TextGenerationModels = Exclude<value2key<AiModels, BaseAiTextGeneration>, v
 type value2key<T, V> = { [K in keyof T]: T[K] extends V ? K : never }[keyof T]
 
 type GoogleGenerativeAIModelId =
+    | "gemini-2.0-flash-001"
     | "gemini-1.5-flash"
     | "gemini-1.5-flash-latest"
     | "gemini-1.5-flash-001"
@@ -51,10 +52,11 @@ type GoogleGenerativeAIModelId =
     | "gemini-1.5-pro-latest"
     | "gemini-1.5-pro-001"
     | "gemini-1.5-pro-002"
-    | "gemini-2.0-flash-001"
+    | "gemini-2.5-pro-exp-03-25"
     | "gemini-2.0-flash-lite-preview-02-05"
     | "gemini-2.0-pro-exp-02-05"
     | "gemini-2.0-flash-thinking-exp-01-21"
     | "gemini-2.0-flash-exp"
     | "gemini-exp-1206"
+    | "gemma-3-27b-it"
     | "learnlm-1.5-pro-experimental"

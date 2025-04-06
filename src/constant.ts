@@ -15,6 +15,14 @@ export const modelMap = {
         provider: "workers-ai",
         think: false,
     },
+    "@cf/meta/llama-4-scout-17b-16e-instruct": {
+        id: "@cf/meta/llama-4-scout-17b-16e-instruct",
+        name: "llama 4 17b",
+        stream: true,
+        useTool: false,
+        provider: "workers-ai",
+        think: false,
+    },
     "@cf/google/gemma-7b-it-lora": {
         id: "@cf/google/gemma-7b-it-lora",
         name: "gemma 7b",
