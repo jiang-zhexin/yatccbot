@@ -40,6 +40,7 @@ export class TextBufferTransformStream extends TransformStream<result, result> {
     }
 
     private transform(chunk: result, controller: TransformStreamDefaultController<result>) {
+        chunk.text = chunk.text.trimStart()
         this.lastchunk = chunk
         if (chunk.text.length - this.sendedSize > Math.min(this.sendedSize, this.maxBufferSize)) {
             this.sendedSize = chunk.text.length
