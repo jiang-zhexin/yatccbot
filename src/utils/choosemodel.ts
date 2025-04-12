@@ -17,6 +17,7 @@ function chooseModel(env: Env, modelMatedata: modelMatedata): LanguageModelV1 {
     switch (modelMatedata.provider) {
         case "workers-ai":
             const workersAI = createWorkersAI({ binding: env.AI, gateway: { id: "yatccbot", collectLog: true } })
+            //@ts-ignore
             return workersAI(modelMatedata.id)
 
         case "google-ai-studio":

@@ -1,7 +1,7 @@
 import { Composer } from "grammy"
 import { Menu, MenuRange } from "@grammyjs/menu"
 
-import { modelMap } from "./constant"
+import { defaultModel, modelMap } from "./constant"
 
 export const setting = new Composer<MyContext>()
 
@@ -28,7 +28,7 @@ export const menuSetting = new Menu<MyContext>("model setting").dynamic((c) => {
 setting.command("models", async (c) => {
     const { env } = c.config
 
-    const model = (await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"
+    const model = (await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? defaultModel
 
     await c.reply(`当前模型: ${modelMap[model].name}`, {
         reply_markup: menuSetting,

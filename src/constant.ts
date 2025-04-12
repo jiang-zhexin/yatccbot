@@ -1,12 +1,4 @@
 export const modelMap = {
-    "@cf/qwen/qwen1.5-14b-chat-awq": {
-        id: "@cf/qwen/qwen1.5-14b-chat-awq",
-        name: "qwen 1.5 14b",
-        stream: true,
-        useTool: false,
-        provider: "workers-ai",
-        think: false,
-    },
     "@cf/meta/llama-3.3-70b-instruct-fp8-fast": {
         id: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         name: "llama 3.3 70b",
@@ -15,9 +7,25 @@ export const modelMap = {
         provider: "workers-ai",
         think: false,
     },
-    "@cf/google/gemma-7b-it-lora": {
-        id: "@cf/google/gemma-7b-it-lora",
-        name: "gemma 7b",
+    "@cf/meta/llama-4-scout-17b-16e-instruct": {
+        id: "@cf/meta/llama-4-scout-17b-16e-instruct",
+        name: "llama 4 17b",
+        stream: true,
+        useTool: false,
+        provider: "workers-ai",
+        think: false,
+    },
+    "@cf/google/gemma-3-12b-it": {
+        id: "@cf/google/gemma-3-12b-it",
+        name: "gemma 3 12b",
+        stream: true,
+        useTool: false,
+        provider: "workers-ai",
+        think: false,
+    },
+    "@cf/mistralai/mistral-small-3.1-24b-instruct": {
+        id: "@cf/mistralai/mistral-small-3.1-24b-instruct",
+        name: "mistral 3.1 24b",
         stream: true,
         useTool: false,
         provider: "workers-ai",
@@ -31,6 +39,14 @@ export const modelMap = {
         provider: "google-ai-studio",
         think: false,
     },
+    "@cf/qwen/qwq-32b": {
+        id: "@cf/qwen/qwq-32b",
+        name: "qwq 32b",
+        stream: true,
+        useTool: false,
+        provider: "workers-ai",
+        think: true,
+    },
     "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
         id: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
         name: "deepseek r1 distill qwen 32b",
@@ -40,3 +56,5 @@ export const modelMap = {
         think: true,
     },
 } as const satisfies Record<string, modelMatedata>
+
+export const defaultModel: keyof typeof modelMap = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"

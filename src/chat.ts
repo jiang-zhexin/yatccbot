@@ -5,7 +5,7 @@ import { type CoreMessage, streamText } from "ai"
 import { Markdown } from "./utils/transform"
 import { MarkdownTransformStream, TextBufferTransformStream } from "./utils/textstream"
 import { ChooseModel } from "./utils/choosemodel"
-import { modelMap } from "./constant"
+import { defaultModel, modelMap } from "./constant"
 
 export const chat = new Composer<MyContext>()
 const system: CoreMessage = {
@@ -51,7 +51,7 @@ chat.on("message:text").filter(
     async (c) => {
         const { env, ctx, AiMessages } = c.config
 
-        const modelMatedata = modelMap[(await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? "@cf/qwen/qwen1.5-14b-chat-awq"]
+        const modelMatedata = modelMap[(await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? defaultModel]
         const model = ChooseModel(env, modelMatedata)
 
         const replyMessage = await c.reply("处理中...", { reply_parameters: { message_id: c.msg.message_id } })
