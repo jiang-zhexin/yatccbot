@@ -39,6 +39,14 @@ export const modelMap = {
         provider: "google-ai-studio",
         think: false,
     },
+    "gemini-2.5-pro-exp-03-25": {
+        id: "gemini-2.5-pro-exp-03-25",
+        name: "gemini 2.5 pro",
+        stream: true,
+        useTool: true,
+        provider: "google-ai-studio",
+        think: false,
+    },
     "@cf/qwen/qwq-32b": {
         id: "@cf/qwen/qwq-32b",
         name: "qwq 32b",
