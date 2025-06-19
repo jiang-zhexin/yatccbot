@@ -1,12 +1,14 @@
 import { Composer } from "grammy"
 import { Menu, MenuRange } from "@grammyjs/menu"
+import { env } from "cloudflare:workers"
 
 import { defaultModel, modelMap } from "./constant"
 
 export const setting = new Composer<MyContext>()
 
 export const menuSetting = new Menu<MyContext>("model setting").dynamic((c) => {
-    const { env, ctx } = c.config
+    const ctx = globalThis.executionContext
+
     const range = new MenuRange<MyContext>()
 
     let addRow = false
@@ -26,8 +28,6 @@ export const menuSetting = new Menu<MyContext>("model setting").dynamic((c) => {
 })
 
 setting.command("models", async (c) => {
-    const { env } = c.config
-
     const model = (await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? defaultModel
 
     await c.reply(`当前模型: ${modelMap[model].name}`, {

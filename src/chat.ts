@@ -1,6 +1,7 @@
 import { Composer } from "grammy"
 import type { MessageEntity } from "@grammyjs/types"
 import { type CoreMessage, streamText } from "ai"
+import { env } from "cloudflare:workers"
 
 import { Markdown } from "./utils/transform"
 import { MarkdownTransformStream, TextBufferTransformStream } from "./utils/textstream"
@@ -19,15 +20,13 @@ chat.on("message:text")
     .filter((c) => c.msg.text.length > 2) // 短信息很可能不是询问 LLM
     .filter((c) => !c.msg.text.startsWith("/"))
     .use(async (c, next) => {
-        const { env } = c.config
-
         const AiMessages =
             (await env.YATCC.get<CoreMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
                 type: "json",
             })) ?? []
         AiMessages.unshift(system)
         AiMessages.push({ role: "user", content: c.msg.text })
-        c.config.AiMessages = AiMessages
+        c.config = { AiMessages }
         await next()
     })
 
@@ -42,14 +41,15 @@ chat.command("chat", async (c, next) => {
     if (AiMessages.length === 1) {
         return await c.reply("请输入文字", { reply_parameters: { message_id: c.msg.message_id } })
     }
-    c.config.AiMessages = AiMessages
+    c.config = { AiMessages }
     await next()
 })
 
 chat.on("message:text").filter(
-    (c) => c.config.AiMessages !== undefined,
+    (c) => c.config?.AiMessages !== undefined,
     async (c) => {
-        const { env, ctx, AiMessages } = c.config
+        const { AiMessages } = c.config
+        const ctx = globalThis.executionContext
 
         const modelMatedata = modelMap[(await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? defaultModel]
         const model = ChooseModel(env, modelMatedata)

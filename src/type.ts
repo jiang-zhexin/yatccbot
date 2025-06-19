@@ -11,11 +11,10 @@ declare global {
         text: string
         entities: MessageEntity[]
     }
+    var executionContext: ExecutionContext
 }
 
 interface BotConfig {
-    ctx: ExecutionContext
-    env: Env
     AiMessages?: CoreMessage[]
 }
 
