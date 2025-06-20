@@ -39,21 +39,13 @@ export const modelMap = {
         provider: "google-ai-studio",
         think: false,
     },
-    "@cf/qwen/qwq-32b": {
-        id: "@cf/qwen/qwq-32b",
-        name: "qwq 32b",
+    "gemini-2.5-flash-lite-preview-06-17": {
+        id: "gemini-2.5-flash-lite-preview-06-17",
+        name: "gemini 2.5 flash lite",
         stream: true,
-        useTool: false,
-        provider: "workers-ai",
-        think: true,
-    },
-    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
-        id: "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
-        name: "deepseek r1 distill qwen 32b",
-        stream: true,
-        useTool: false,
-        provider: "workers-ai",
-        think: true,
+        useTool: true,
+        provider: "google-ai-studio",
+        think: false,
     },
 } as const satisfies Record<string, modelMatedata>
 
