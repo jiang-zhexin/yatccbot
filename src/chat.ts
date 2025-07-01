@@ -64,25 +64,11 @@ chat.on("message:text").filter(
             messages: AiMessages,
             maxTokens: 2048,
             temperature: 0.6,
+            onError: async ({ error }) => {
+                await edit(String(error))
+                throw error
+            },
         })
-
-        ctx.waitUntil(
-            result.reasoning.then((reasoning) => {
-                if (!reasoning) return
-                const message = Markdown(reasoning)
-                edit = async (text: string, entities?: MessageEntity[]) =>
-                    c.api.editMessageText(replyMessage.chat.id, replyMessage.message_id, message.text + text, {
-                        entities: [
-                            { type: "expandable_blockquote", offset: 0, length: message.text.length },
-                            ...message.entities,
-                            ...(entities?.map((e) => {
-                                e.offset += message.text.length
-                                return e
-                            }) ?? []),
-                        ],
-                    })
-            })
-        )
 
         const streamEdit = new WritableStream<result>({
             async write(chunk: result, controller) {
