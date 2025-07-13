@@ -3,7 +3,6 @@ import type { MessageEntity } from "@grammyjs/types"
 import { type CoreMessage, streamText } from "ai"
 import { env } from "cloudflare:workers"
 
-import { Markdown } from "./utils/transform"
 import { MarkdownTransformStream, TextBufferTransformStream } from "./utils/textstream"
 import { ChooseModel } from "./utils/choosemodel"
 import { defaultModel, modelMap } from "./constant"
