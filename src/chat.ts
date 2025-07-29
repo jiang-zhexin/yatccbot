@@ -11,7 +11,7 @@ export const chat = new Composer<MyContext>()
 const system: CoreMessage = {
     role: "system",
     content:
-        "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论。由于你在群聊中，所以如果有连续两条来自用户的消息，它们很可能出自不同人之口。客观中立的言论在群聊中可能不适用，人们更喜欢打趣的说法",
+        "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论。由于你在群聊中，所以如果有连续两条来自用户的消息，它们很可能出自不同人之口。",
 }
 
 chat.on("message:text")
