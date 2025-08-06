@@ -1,19 +1,19 @@
-import { extractReasoningMiddleware, wrapLanguageModel, type LanguageModelV1 } from "ai"
+import { extractReasoningMiddleware, wrapLanguageModel, type LanguageModel } from "ai"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { createWorkersAI } from "workers-ai-provider"
 
-export function ChooseModel(env: Env, modelMatedata: modelMatedata): LanguageModelV1 {
+export function ChooseModel(env: Env, modelMatedata: modelMatedata): LanguageModel {
     const model = chooseModel(env, modelMatedata)
     if (modelMatedata.think === false) {
         return model
     }
     return wrapLanguageModel({
-        model: model,
+        model: model as any,
         middleware: extractReasoningMiddleware({ tagName: "think", startWithReasoning: true }),
     })
 }
 
-function chooseModel(env: Env, modelMatedata: modelMatedata): LanguageModelV1 {
+function chooseModel(env: Env, modelMatedata: modelMatedata): LanguageModel {
     switch (modelMatedata.provider) {
         case "workers-ai":
             const workersAI = createWorkersAI({ binding: env.AI, gateway: { id: "yatccbot", collectLog: true } })

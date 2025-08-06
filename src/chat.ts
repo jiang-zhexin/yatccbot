@@ -1,6 +1,6 @@
 import { Composer } from "grammy"
 import type { MessageEntity } from "@grammyjs/types"
-import { type CoreMessage, streamText } from "ai"
+import { type ModelMessage, streamText } from "ai"
 import { env } from "cloudflare:workers"
 
 import { MarkdownTransformStream, TextBufferTransformStream } from "./utils/textstream"
@@ -8,7 +8,7 @@ import { ChooseModel } from "./utils/choosemodel"
 import { defaultModel, modelMap } from "./constant"
 
 export const chat = new Composer<MyContext>()
-const system: CoreMessage = {
+const system: ModelMessage= {
     role: "system",
     content:
         "你在 telegram 中扮演一个 Bot, 对于用户的请求，请尽量精简地解答，勿长篇大论。由于你在群聊中，所以如果有连续两条来自用户的消息，它们很可能出自不同人之口。",
@@ -20,7 +20,7 @@ chat.on("message:text")
     .filter((c) => !c.msg.text.startsWith("/"))
     .use(async (c, next) => {
         const AiMessages =
-            (await env.YATCC.get<CoreMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
+            (await env.YATCC.get<ModelMessage[]>(`${c.msg.chat.id}-${c.msg.reply_to_message?.message_id}`, {
                 type: "json",
             })) ?? []
         AiMessages.unshift(system)
@@ -30,7 +30,7 @@ chat.on("message:text")
     })
 
 chat.command("chat", async (c, next) => {
-    const AiMessages: CoreMessage[] = [system]
+    const AiMessages: ModelMessage[] = [system]
     if (c.msg.reply_to_message?.quote?.text) {
         AiMessages.push({ role: "user", content: c.msg.reply_to_message.quote.text })
     } else {
@@ -61,7 +61,7 @@ chat.on("message:text").filter(
         const result = streamText({
             model: model,
             messages: AiMessages,
-            maxTokens: 2048,
+            maxOutputTokens:2048,
             temperature: 0.6,
             onError: async ({ error }) => {
                 await edit(String(error))

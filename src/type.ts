@@ -1,6 +1,6 @@
 import type { Context } from "grammy"
 import type { MessageEntity } from "grammy/types"
-import type { CoreMessage } from "ai"
+import type { ModelMessage } from "ai"
 import { modelMap } from "./constant"
 
 declare global {
@@ -15,7 +15,7 @@ declare global {
 }
 
 interface BotConfig {
-    AiMessages?: CoreMessage[]
+    AiMessages?: ModelMessage[]
 }
 
 interface workersAImodel extends matedata {
