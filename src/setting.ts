@@ -28,9 +28,9 @@ export const menuSetting = new Menu<MyContext>("model setting").dynamic((c) => {
 })
 
 setting.command("models", async (c) => {
-    const model = (await env.YATCC.get<models>(`${c.msg.chat.id}-model`)) ?? defaultModel
-
-    await c.reply(`当前模型: ${modelMap[model].name}`, {
+    const modelID = await env.YATCC.get<models>(`${c.msg.chat.id}-model`)
+    const model = modelMap[modelID ?? defaultModel] ?? modelMap[defaultModel]
+    await c.reply(`当前模型: ${model.name}`, {
         reply_markup: menuSetting,
         entities: [{ type: "bold", offset: 0, length: 5 }],
         reply_parameters: { message_id: c.msg.message_id },
