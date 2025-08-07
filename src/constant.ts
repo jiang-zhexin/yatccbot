@@ -31,6 +31,14 @@ export const modelMap = {
         provider: "workers-ai",
         think: false,
     },
+    "@cf/openai/gpt-oss-120b": {
+        id: "@cf/openai/gpt-oss-120b",
+        name: "gpt oss 120b",
+        stream: true,
+        useTool: false,
+        provider: "workers-ai",
+        think: true,
+    },
     "gemini-2.0-flash-001": {
         id: "gemini-2.0-flash-001",
         name: "gemini 2.0 flash",
